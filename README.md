@@ -28,7 +28,7 @@ Once you have the key and the secret, you have several choices:
       With this file existing, you can query right away, by using the shortcut module `DME`, such as         
 
       ```ruby
-      require 'dnsmadeeasy/dme' # this loads a `DME` shortcut.
+      require 'dme'
       DME.domains.data.first.name #=> 'moo.gamespot.com'
       ```
 
