@@ -18,28 +18,28 @@ Once you have the key and the secret, you have several choices:
 
   1. Perhaps the most conveniently, you can store them in a small YAML file, that must be placed in a specific location within your home folder:  `~/.dnsmadeeasy/credentials.yml`. The file should look like this one below (NOTE: these are not real credentials, btw):
 
-    ```yaml
-    # file: ~/.dnsmadeeasy/credentials.yml
-    credentials:
-      api_key: 2062259f-f666b17-b1fa3b48-042ad4030
-      api_secret: 2265bc3-e31ead-95b286312e-c215b6a0
-    ```
+      ```yaml
+      # file: ~/.dnsmadeeasy/credentials.yml
+      credentials:
+        api_key: 2062259f-f666b17-b1fa3b48-042ad4030
+        api_secret: 2265bc3-e31ead-95b286312e-c215b6a0
+      ```
 
-    With this file existing, you can query right away, by using the shortcut module `DME`, such as         
+      With this file existing, you can query right away, by using the shortcut module `DME`, such as         
 
-    ```ruby
-    require 'dnsmadeeasy/dme' # this loads a `DME` shortcut.
-    DME.domains.data.first.name #=> 'moo.gamespot.com'
-    ```
+      ```ruby
+      require 'dnsmadeeasy/dme' # this loads a `DME` shortcut.
+      DME.domains.data.first.name #=> 'moo.gamespot.com'
+      ```
 
   2. Or, you can directly instantiate a new instance of the `Client` class, by passing your API key and API secrets as arguments:
 
-     ```ruby
-     require 'dnsmadeeasy'
-     @client = DnsMadeEasy::Api::Client.new(api_key, api_secret)
-     ```
+      ```ruby
+      require 'dnsmadeeasy'
+      @client = DnsMadeEasy::Api::Client.new(api_key, api_secret)
+      ```
 
-     The advantage of this method is that you can query multiple DnsMadeEasy accounts from the same Ruby VM. With other methods, only one account can be connected to.
+      The advantage of this method is that you can query multiple DnsMadeEasy accounts from the same Ruby VM. With other methods, only one account can be connected to.
 
   3. Or, you can use the `DnsMadeEasy.configure` method to configure the key/secret pair, and then use `DnsMadeEasy` namespace to call the methods:
 
@@ -69,8 +69,6 @@ Assuming my credentials are stored, I can access everything about my domains as 
 
 
 ```ruby
-
-
 IRB(main):003:0> require 'dme' #=> true
 IRB(main):003:0> DME.domains.data.map(&:name)
  ⤷ ["demo.gamespot.systems",
