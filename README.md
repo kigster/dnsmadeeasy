@@ -1,10 +1,10 @@
 [![Gem Version](https://badge.fury.io/rb/dnsmadeeasy.svg)](https://badge.fury.io/rb/dnsmadeeasy)
 [![Build Status](https://travis-ci.org/kigster/dnsmadeeasy.svg?branch=master)](https://travis-ci.org/kigster/dnsmadeeasy)
-[![Maintainability](https://api.codeclimate.com/v1/badges/f2e66c122253167681a2/maintainability)](https://codeclimate.com/github/kigster/dnsmadeeasy/maintainability)
-[![Test Coverage](https://api.codeclimate.com/v1/badges/f2e66c122253167681a2/test_coverage)](https://codeclimate.com/github/kigster/dnsmadeeasy/test_coverage)
+[![Maintainability](https://api.codeclimate.com/v1/badges/7a48648b482b5a5c9257/maintainability)](https://codeclimate.com/github/kigster/dnsmadeeasy/maintainability)
+[![Test Coverage](https://api.codeclimate.com/v1/badges/7a48648b482b5a5c9257/test_coverage)](https://codeclimate.com/github/kigster/dnsmadeeasy/test_coverage)
 
-DnsMadeEasy — Ruby Client API (Supporting SDK V2.0)
-==============
+
+# DnsMadeEasy — Ruby Client API (Supporting SDK V2.0)
 
 ## Installation
 
