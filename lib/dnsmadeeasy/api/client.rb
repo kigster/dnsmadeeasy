@@ -3,6 +3,7 @@ require 'openssl'
 require 'json'
 require 'uri'
 require 'net/http'
+require 'hashie/mash'
 
 module DnsMadeEasy
   module Api
@@ -247,7 +248,7 @@ module DnsMadeEasy
 
         unparsed_json = response.body.to_s.empty? ? '{}' : response.body
 
-        JSON.parse(unparsed_json)
+        Hashie::Mash.new(JSON.parse(unparsed_json))
       end
 
 

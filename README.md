@@ -6,70 +6,138 @@
 
 # DnsMadeEasy — Ruby Client API (Supporting SDK V2.0)
 
-## Installation
-
-Add this line to your application's Gemfile:
-
-```ruby
-gem 'dnsmadeeasy'
-```
-
-And then execute:
-
-```
-$ bundle
-```
-
-Or install it yourself:
-
-```
-$ gem install dnsmadeeasy
-```
+This is a fully featured REST API client for DnsMadeEasy provider. DME is an **excellent** provider, and is highly recommended for their ease of use, very solid API, and great customer support. They also offer free DNS failover with business accounts, which is highly recommended for the arrays of load balancers in front of your app.
 
 ## Usage
 
-After requiring `dnsmadeeasy` you can either:
+**DnsMadeEasy** allows you to fetch, create, update DNS records, as long as you know your API key and the secret.
 
- * directly instantiate a new instance of the `DnsMadeEasy::Api::Client` class, 
-by passing your API key and API secret, OR:
+You can find your API Key and Secret on the [Account Settings Page](https://cp.dnsmadeeasy.com/account/info) of their UI.
 
- * you can use the `DnsMadeEasy.client` method after configuring the key and the secret.
- 
-### Recommended Usage
+Once you have the key and the secret, you have several choices:
 
-If you are not planning on accessing more than one DnsMadeEasy account from the same Ruby VM, you might prefer the following usage since it's a bit simpler:
+  1. Perhaps the most conveniently, you can store them in a small YAML file, that must be placed in a specific location within your home folder:  `~/.dnsmadeeasy/credentials.yml`. The file should look like this one below (NOTE: these are not real credentials, btw):
+
+    ```yaml
+    # file: ~/.dnsmadeeasy/credentials.yml
+    credentials:
+      api_key: 2062259f-f666b17-b1fa3b48-042ad4030
+      api_secret: 2265bc3-e31ead-95b286312e-c215b6a0
+    ```
+
+    With this file existing, you can query right away, by using the shortcut module `DME`, such as         
+
+    ```ruby
+    require 'dnsmadeeasy/dme' # this loads a `DME` shortcut.
+    DME.domains.data.first.name #=> 'moo.gamespot.com'
+    ```
+
+  2. Or, you can directly instantiate a new instance of the `Client` class, by passing your API key and API secrets as arguments:
+
+     ```ruby
+     require 'dnsmadeeasy'
+     @client = DnsMadeEasy::Api::Client.new(api_key, api_secret)
+     ```
+
+     The advantage of this method is that you can query multiple DnsMadeEasy accounts from the same Ruby VM. With other methods, only one account can be connected to.
+
+  3. Or, you can use the `DnsMadeEasy.configure` method to configure the key/secret pair, and then use `DnsMadeEasy` namespace to call the methods:
+
+     ```ruby
+     require 'dnsmadeeasy'
+
+     DnsMadeEasy.configure do |config|
+       config.api_key = 'XXXX'
+       config.api_secret = 'YYYY'
+     end
+
+     DnsMadeEasy.domains.data.first.name #=> 'moo.gamespot.com'     
+     ```
+
+### Shortcut Module `DME` and `DnsMadeEasy` Namespaces
+
+Since `DnsMadeEasy` is a bit of a mouthful, we decided to offer (in addition) the abbreviated module `DME` that simply forwards all method calls to `DnsMadeEasy`. You can now `require 'dme'` to get all of the DnsMadeEasy client library loaded up, assuming it does not clash with any other `dme` file in your project.
+
+And then you can use `DME.method(*args)` as you would on `DnsMadeEasy.method(*args)` or on the instance of the actual worker-horse class of this library, the gorgeous blone with a very long name: `DnsMadeEasy::Api::Client`.
+
+
+### Examples
+
+If you are not planning on accessing more than one DnsMadeEasy account from the same Ruby VM, it's recommended to save the credentials in the above mentioned file. **DO NOT check that file into any repository.**
+
+Assuming my credentials are stored, I can access everything about my domains as follows (let's pretend that I own a bunch of `gamespot` domains):
 
 
 ```ruby
-require 'dnsmadeeasy'
-DnsMadeEasy.configure do |config|
-  config.api_key = 'XXXX'
-  config.api_secret = 'YYYY' 
-end
 
-@client = ::DnsMadeEasy.client
-@client.domain('test.io')
-# => Domain Object
+
+IRB(main):003:0> require 'dme' #=> true
+IRB(main):003:0> DME.domains.data.map(&:name)
+ ⤷ ["demo.gamespot.systems",
+      "dev.gamespot.systems",
+             "gamespot.live",
+          "gamespot.systems",
+     "prod.gamespot.systems"
+   ]
+
+IRB(main):008:0> DME.api_key
+ ⤷ "2062259f-f666b17-b1fa3b48-042ad4030"
+
+IRB(main):009:0> DME.api_secret
+ ⤷ "2265bc3-e31ead-95b286312e-c215b6a0"
+
+IRB(main):010:0> @client = DME.client
+ ⤷ #<DnsMadeEasy::Api::Client:0x00007fb6b416a4c8
+    @api_key="2062259f-f666b17-b1fa3b48-042ad4030",
+    @api_secret="2265bc3-e31ead-95b286312e-c215b6a0",
+    @options={},
+    @requests_remaining=149,
+    @request_limit=150,
+    @base_uri="https://api.dnsmadeeasy.com/V2.0">
 ```
 
-### Advanced Usage
+### Return Values
 
-You can also instantiate a `Client` object with a different set of API key and secret, should you need to manage multiple accounts from within the same Ruby VM. The `DnsMadeEasy.configure` method is not used in this case, and the values passed to the constructor will be used instead.
- 
-```ruby
-require 'dnsmadeeasy/api/client'
-
-api_key    = 'XXXX'
-api_secret = 'YYYY'
-
-@client = ::DnsMadeEasy::Api::Client.new(api_key, api_secret)  
-```
-
-#### Module Level Access
+Whever DnsMadeEasy returns is typically a Hash, but we wrap it in a [`Hashie::Mash`](https://github.com/intridea/hashie) instance, which offers some additional benefits, such as the ability to call nested values via method calls instead of using square brackets. You can always call either `to_hash` or `to_h` on an instance of a `Hashie::Mash` to get a pure hash representation.
 
 All return values are the direct JSON responses from DNS Made Easy converted into a Hash.
 
 For more information on the actual JSON API, please refer to the [following PDF document](http://www.dnsmadeeasy.com/integration/pdf/API-Docv2.pdf).
+
+## Method Calls
+
+Here is the complete of all methods supported by the `DnsMadeEasy::Api::Client`:
+
+* `base_uri=`
+* `base_uri`
+* `create_a_record`
+* `create_aaaa_record`
+* `create_cname_record`
+* `create_domain`
+* `create_domains`
+* `create_httpred_record`
+* `create_mx_record`
+* `create_ns_record`
+* `create_ptr_record`
+* `create_record`
+* `create_spf_record`
+* `create_srv_record`
+* `create_txt_record`
+* `delete_all_records`
+* `delete_domain`
+* `delete_record`
+* `delete_records`
+* `domain`
+* `domains`
+* `find_record_id`
+* `find`
+* `get_id_by_domain`
+* `records_for`
+* `request_limit`
+* `requests_remaining`
+* `update_record`
+* `update_records`
+
 
 ### Managing Domains
 
@@ -152,7 +220,7 @@ To create a record:
 # Arguments are: domain_name, name, priority, weight, port, value, options = {}
 @client.create_srv_record    ('test.io', 'woah', 1, 5, 80, '127.0.0.1', {})
 # Arguments are: domain_name, name, value, redirectType, description, keywords, title, options = {}
-@client.create_httpred_record('test.io', 'woah', '127.0.0.1', 'STANDARD - 302', 
+@client.create_httpred_record('test.io', 'woah', '127.0.0.1', 'STANDARD - 302',
                               'a description', 'keywords', 'a title', {})
 ```
 
@@ -166,15 +234,15 @@ To update a record:
 To update several records:
 
 ```ruby
-@client.update_records('test.io', 
+@client.update_records('test.io',
   [
-    { 'id'   => 123, 
-      'name' => 'buddy', 
+    { 'id'   => 123,
+      'name' => 'buddy',
       'type' => 'A',
       'value'=> '127.0.0.1'
     }
   ], { 'ttl' => '60' })
-  
+
 ```
 
 To get the number of API requests remaining after a call:
@@ -193,6 +261,26 @@ To get the API request total limit after a call:
 ```
 >Information is not available until an API call has been made
 
+## Installation
+
+Add this line to your application's Gemfile:
+
+```ruby
+gem 'dnsmadeeasy'
+```
+
+And then execute:
+
+```
+$ bundle
+```
+
+Or install it yourself:
+
+```
+$ gem install dnsmadeeasy
+```
+
 
 ## Development
 
@@ -207,7 +295,7 @@ The current maintainer [Konstantin Gredeskoul](https://github.com/kigster) wishe
  * Arnoud Vermeer for the original `dnsmadeeasy-rest-api` gem
  * Andre Arko, Paul Henry, James Hart formerly of [Wanelo](wanelo.com) fame, for bringing the REST API gem up to the level.
  * Phil Cohen, who graciously transferred the ownership of this gem on RubyGems to the current maintainer.
- 
+
 
 ## Contributing
 
