@@ -36,7 +36,7 @@ Once you have the key and the secret, you have several choices:
 
       ```ruby
       require 'dnsmadeeasy'
-      @client = DnsMadeEasy::Api::Client.new(api_key, api_secret)
+      @client = DnsMadeEasy::Api::Client.new(api_key, api_secret)
       ```
 
       The advantage of this method is that you can query multiple DnsMadeEasy accounts from the same Ruby VM. With other methods, only one account can be connected to.
@@ -83,6 +83,9 @@ IRB(main):008:0> DME.api_key
 
 IRB(main):009:0> DME.api_secret
  ⤷ "2265bc3-e31ead-95b286312e-c215b6a0"
+ 
+IRB(main):011:0> DME.domain('gamespot.live').delegateNameServers
+ ⤷ #<Hashie::Array ["ns-125-c.gandi.net.", "ns-129-a.gandi.net.", "ns-94-b.gandi.net."]>
 
 IRB(main):010:0> @client = DME.client
  ⤷ #<DnsMadeEasy::Api::Client:0x00007fb6b416a4c8
