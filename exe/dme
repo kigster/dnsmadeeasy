@@ -1,0 +1,6 @@
+#!/usr/bin/env ruby
+
+require 'dnsmadeeasy'
+require 'dnsmadeeasy/cli'
+
+DnsMadeEasy::CLI::Runner.new(ARGV).execute!
