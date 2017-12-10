@@ -63,9 +63,10 @@ And then you can use `DME.method(*args)` as you would on `DnsMadeEasy.method(*ar
 
 ### Examples
 
-If you are not planning on accessing more than one DnsMadeEasy account from the same Ruby VM, it's recommended to save the credentials in the above mentioned file. **DO NOT check that file into any repository.**
+If you are planning on accessing *only one DnsMadeEasy account from the same Ruby VM*, it's recommended that you save your credentials (the API key and the secret) in the above mentioned file `~/.dnsmadeeasy/credentials.yml`.
 
-> **NOTE: below examples assume that credentials are stored in `~/.dnsmadeeasy/credentials.yml`.
+> **NOTE: DO NOT check that file into your repo!**  
+> **NOTE: The examples that follow assume credentials have been read from that file.**
 
 Using the `DME` module (or `DnsMadeEasy` if you prefer) you can access all of your records through the available API method calls, for example:
 
@@ -104,25 +105,43 @@ IRB(main):010:0> @client = DME.client
 Next, let's fetch a particular domain, get it's records and compute the counts for each record type, such as 'A', 'NS', etc.
 
 ```ruby
-IRB(main):016:0> recs = DME.records_for('gamespot.com'); nil
-IRB(main):017:0> [ recs.totalPages, recs.totalRecords ]
+IRB(main):016:0> records = DME.records_for('gamespot.com')
+
+IRB(main):017:0> [ records.totalPages, records.totalRecords ]
  ⤷ [1, 33]
  
-IRB(main):016:0> recs.data.select{|f| f.type == 'A' }.map(&:name)
+IRB(main):016:0> records.data.select{|f| f.type == 'A' }.map(&:name)
  ⤷ ["www", "vpn-us-east1", "vpn-us-east2", "staging", "yourmom"]
  
- IRB(main):026:0> types = recs.data.map(&:type)
- ⤷ ["MX", "MX", "TXT", "CNAME", "CNAME", "NS", "NS", "NS", "NS", "NS", "NS", "NS", "NS", "NS", "NS", "A", "NS", "NS", "NS", "NS", "NS", "NS", "NS", "NS", "NS", "NS", "NS", "NS", "CNAME", "A", "A", "A", "A"]
- 
-IRB(main):028:0> res = Hash[types.group_by {|x| x}.map {|k,v| [k,v.count]}]
- ⤷ {"MX"=>2, "TXT"=>1, "CNAME"=>3, "NS"=>22, "A"=>5}
- ```
+ IRB(main):026:0> types = records.data.map(&:type)
+ ⤷ ["MX", "MX", "TXT", "CNAME", "CNAME", "NS", "NS", "NS", "NS", "NS", "NS", 
+     "NS", "NS", "NS", "NS", "A", "NS", "NS", "NS", "NS", "NS", "NS", "NS", 
+     "NS", "NS", "NS", "NS", "NS", "CNAME", "A", "A", "A", "A"]
 
-### Return Values
+IRB(main):027:0> require 'awesome_print' 
+IRB(main):028:0> ap Hash[types.group_by {|x| x}.map {|k,v| [k,v.count]}]
+{
+       "MX" => 2,
+      "TXT" => 1,
+    "CNAME" => 3,
+       "NS" => 22,
+        "A" => 5
+}
+```
 
-Whever DnsMadeEasy returns is typically a Hash, but we wrap it in a [`Hashie::Mash`](https://github.com/intridea/hashie) instance, which offers some additional benefits, such as the ability to call nested values via method calls instead of using square brackets. You can always call either `to_hash` or `to_h` on an instance of a `Hashie::Mash` to get a pure hash representation.
+### Return Value Types
 
-All return values are the direct JSON responses from DNS Made Easy converted into a Hash.
+All public methods of this library return a Hash-like object, that is actually an instance of the class [`Hashie::Mash`](https://github.com/intridea/hashie). `Hashie::Mash` supports the very useful ability to reach deeply nested hash values via a chain of method calls instead of using a train of square brackets. You can always convert it to a regular hash either `to_hash` or `to_h` on an instance of a `Hashie::Mash` to get a pure hash representation.
+
+> NOTE: `to_hash` converts the entire object to a regular hash, including the deeply nested hashes, while `to_h` only converts the primary object, but not the nested hashes. Here is an exanmple:
+> 
+> ```ruby
+> IRB(main):060:0> recs.to_h['data'].last.value
+>  ⤷ 54.200.26.233
+> IRB(main):061:0> recs.to_hash['data'].last.value
+> NoMethodError: undefined method `value' for #<Hash:0x00007fe36fab0f68>
+> 
+> ```
 
 For more information on the actual JSON API, please refer to the [following PDF document](http://www.dnsmadeeasy.com/integration/pdf/API-Docv2.pdf).
 
