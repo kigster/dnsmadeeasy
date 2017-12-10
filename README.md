@@ -65,7 +65,9 @@ And then you can use `DME.method(*args)` as you would on `DnsMadeEasy.method(*ar
 
 If you are not planning on accessing more than one DnsMadeEasy account from the same Ruby VM, it's recommended to save the credentials in the above mentioned file. **DO NOT check that file into any repository.**
 
-Assuming my credentials are stored, I can access everything about my domains as follows (let's pretend that I own a bunch of `gamespot` domains):
+> **NOTE: below examples assume that credentials are stored in `~/.dnsmadeeasy/credentials.yml`.
+
+Using the `DME` module (or `DnsMadeEasy` if you prefer) you can access all of your records through the available API method calls, for example:
 
 
 ```ruby
@@ -78,6 +80,7 @@ IRB(main):003:0> DME.domains.data.map(&:name)
      "prod.gamespot.systems"
    ]
 
+# These have been read from the file ~/.dnsmadeeasy/credentials.yml
 IRB(main):008:0> DME.api_key
  ⤷ "2062259f-f666b17-b1fa3b48-042ad4030"
 
@@ -87,6 +90,7 @@ IRB(main):009:0> DME.api_secret
 IRB(main):011:0> DME.domain('gamespot.live').delegateNameServers
  ⤷ #<Hashie::Array ["ns-125-c.gandi.net.", "ns-129-a.gandi.net.", "ns-94-b.gandi.net."]>
 
+# Let's inspect the Client — after all, all methods are simply delegated to it:
 IRB(main):010:0> @client = DME.client
  ⤷ #<DnsMadeEasy::Api::Client:0x00007fb6b416a4c8
     @api_key="2062259f-f666b17-b1fa3b48-042ad4030",
@@ -94,8 +98,25 @@ IRB(main):010:0> @client = DME.client
     @options={},
     @requests_remaining=149,
     @request_limit=150,
-    @base_uri="https://api.dnsmadeeasy.com/V2.0">
+    @base_uri="https://api.dnsmadeeasy.com/V2.0"> 
 ```
+
+Next, let's fetch a particular domain, get it's records and compute the counts for each record type, such as 'A', 'NS', etc.
+
+```ruby
+IRB(main):016:0> recs = DME.records_for('gamespot.com'); nil
+IRB(main):017:0> [ recs.totalPages, recs.totalRecords ]
+ ⤷ [1, 33]
+ 
+IRB(main):016:0> recs.data.select{|f| f.type == 'A' }.map(&:name)
+ ⤷ ["www", "vpn-us-east1", "vpn-us-east2", "staging", "yourmom"]
+ 
+ IRB(main):026:0> types = recs.data.map(&:type)
+ ⤷ ["MX", "MX", "TXT", "CNAME", "CNAME", "NS", "NS", "NS", "NS", "NS", "NS", "NS", "NS", "NS", "NS", "A", "NS", "NS", "NS", "NS", "NS", "NS", "NS", "NS", "NS", "NS", "NS", "NS", "CNAME", "A", "A", "A", "A"]
+ 
+IRB(main):028:0> res = Hash[types.group_by {|x| x}.map {|k,v| [k,v.count]}]
+ ⤷ {"MX"=>2, "TXT"=>1, "CNAME"=>3, "NS"=>22, "A"=>5}
+ ```
 
 ### Return Values
 
