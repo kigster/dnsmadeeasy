@@ -133,7 +133,7 @@ IRB(main):028:0> ap Hash[types.group_by {|x| x}.map {|k,v| [k,v.count]}]
 
 All public methods of this library return a Hash-like object, that is actually an instance of the class [`Hashie::Mash`](https://github.com/intridea/hashie). `Hashie::Mash` supports the very useful ability to reach deeply nested hash values via a chain of method calls instead of using a train of square brackets. You can always convert it to a regular hash either `to_hash` or `to_h` on an instance of a `Hashie::Mash` to get a pure hash representation.
 
-> NOTE: `to_hash` converts the entire object to a regular hash, including the deeply nested hashes, while `to_h` only converts the primary object, but not the nested hashes. Here is an exanmple:
+> NOTE: `to_h` converts the entire object to a regular hash, including the deeply nested hashes, while `to_hash` only converts the primary object, but not the nested hashes. Here is an exanmple:
 > 
 > ```ruby
 > IRB(main):060:0> recs.to_h['data'].last.value
