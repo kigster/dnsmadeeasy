@@ -133,14 +133,15 @@ IRB(main):028:0> ap Hash[types.group_by {|x| x}.map {|k,v| [k,v.count]}]
 
 All public methods of this library return a Hash-like object, that is actually an instance of the class [`Hashie::Mash`](https://github.com/intridea/hashie). `Hashie::Mash` supports the very useful ability to reach deeply nested hash values via a chain of method calls instead of using a train of square brackets. You can always convert it to a regular hash either `to_hash` or `to_h` on an instance of a `Hashie::Mash` to get a pure hash representation.
 
-> NOTE: `to_h` converts the entire object to a regular hash, including the deeply nested hashes, while `to_hash` only converts the primary object, but not the nested hashes. Here is an exanmple:
+> NOTE: `to_hash` converts the entire object to a regular hash, including the deeply nested hashes, while `to_h` only converts the primary object, but not the nested hashes. Here is an example below — in the first instance where we call `to_h` we are still able to call `.value` on the nested object, because only the top-level `Mash` has been converted into a `Hash`. In the second example, this call fails, because this method does not exist, and the value must be accessed via the square brackets:
 > 
 > ```ruby
 > IRB(main):060:0> recs.to_h['data'].last.value
 >  ⤷ 54.200.26.233
 > IRB(main):061:0> recs.to_hash['data'].last.value
 > NoMethodError: undefined method `value' for #<Hash:0x00007fe36fab0f68>
-> 
+> IRB(main):062:0> recs.to_hash['data'].last['value']
+>  ⤷ 54.200.26.233
 > ```
 
 For more information on the actual JSON API, please refer to the [following PDF document](http://www.dnsmadeeasy.com/integration/pdf/API-Docv2.pdf).
