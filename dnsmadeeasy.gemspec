@@ -31,6 +31,8 @@ Gem::Specification.new do |spec|
   spec.require_paths = ['lib']
 
   spec.add_dependency 'hashie'
+  spec.add_dependency 'colored2'
+  spec.add_dependency 'awesome_print'
 
   spec.add_development_dependency 'yard'
   spec.add_development_dependency 'simplecov'

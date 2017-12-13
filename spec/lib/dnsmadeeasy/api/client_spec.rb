@@ -2,6 +2,7 @@ require 'spec_helper'
 
 RSpec.describe DnsMadeEasy::Api::Client do
   let(:api_domain) { DnsMadeEasy::API_BASE_URL_PRODUCTION }
+  let(:user_domain)  { 'something.somedomain.boo' }
   let(:api_key) { 'soooo secret' }
   let(:secret_key) { 'soooo secret' }
   let(:request_headers) do
@@ -11,7 +12,19 @@ RSpec.describe DnsMadeEasy::Api::Client do
       'X-Dnsme-Requestdate' => 'Wed, 21 May 2014 18:08:37 GMT' }
   end
 
-  subject { described_class.new(api_key, secret_key) }
+  subject(:client) { described_class.new(api_key, secret_key) }
+
+  context 'base_uri' do
+    its(:base_uri) { should eq api_domain }
+    context 'on_sandbox' do
+      it 'should temporarily set it to sandbox URL' do
+        client.on_sandbox do
+          expect(client.base_uri).to eq DnsMadeEasy::API_BASE_URL_SANDBOX
+        end
+        expect(client.base_uri).to eq api_domain
+      end
+    end
+  end
 
   before do
     allow(Time).to receive(:now).and_return(Time.parse('Wed, 21 May 2014 18:08:37 GMT'))
@@ -27,7 +40,7 @@ RSpec.describe DnsMadeEasy::Api::Client do
         .with(headers: request_headers)
         .to_return(status: 200, body: response, headers: {})
 
-      expect(subject.get_id_by_domain('something.somedomain.boo')).to eq(1_130_967)
+      expect(subject.get_id_by_domain(user_domain)).to eq(1_130_967)
     end
   end
 
@@ -47,7 +60,7 @@ RSpec.describe DnsMadeEasy::Api::Client do
     let(:response) { '{}' }
 
     before do
-      expect(subject).to receive(:get_id_by_domain).with('something.somedomain.boo').and_return(123)
+      expect(subject).to receive(:get_id_by_domain).with(user_domain).and_return(123)
     end
 
     it 'returns the domain given a domain name' do
@@ -55,7 +68,7 @@ RSpec.describe DnsMadeEasy::Api::Client do
         .with(headers: request_headers)
         .to_return(status: 200, body: response, headers: {})
 
-      expect(subject.domain('something.somedomain.boo')).to eq({})
+      expect(subject.domain(user_domain)).to eq({})
     end
   end
 
@@ -63,7 +76,7 @@ RSpec.describe DnsMadeEasy::Api::Client do
     let(:response) { '{}' }
 
     before do
-      expect(subject).to receive(:get_id_by_domain).with('something.somedomain.boo').and_return(123)
+      expect(subject).to receive(:get_id_by_domain).with(user_domain).and_return(123)
     end
 
     it 'deletes the domain' do
@@ -71,7 +84,7 @@ RSpec.describe DnsMadeEasy::Api::Client do
         .with(headers: request_headers)
         .to_return(status: 200, body: response, headers: {})
 
-      expect(subject.delete_domain('something.somedomain.boo')).to eq({})
+      expect(subject.delete_domain(user_domain)).to eq({})
     end
   end
 
@@ -80,17 +93,17 @@ RSpec.describe DnsMadeEasy::Api::Client do
 
     it 'creates the domains' do
       stub_request(:post, api_domain + '/dns/managed/')
-        .with(headers: request_headers, body: '{"names":["something.somedomain.boo"]}')
+        .with(headers: request_headers, body: '{"names":["' + user_domain + '"]}')
         .to_return(status: 200, body: response, headers: {})
 
-      expect(subject.create_domains(['something.somedomain.boo'])).to eq({})
+      expect(subject.create_domains([user_domain])).to eq({})
     end
   end
 
   describe '#create_domain' do
     it 'calls create_domains with the one domain' do
-      expect(subject).to receive(:create_domains).with(['something.somedomain.boo'])
-      subject.create_domain('something.somedomain.boo')
+      expect(subject).to receive(:create_domains).with([user_domain])
+      subject.create_domain(user_domain)
     end
   end
 
@@ -98,7 +111,7 @@ RSpec.describe DnsMadeEasy::Api::Client do
     let(:response) { '{}' }
 
     before do
-      expect(subject).to receive(:get_id_by_domain).with('something.somedomain.boo').and_return(123)
+      expect(subject).to receive(:get_id_by_domain).with(user_domain).twice.and_return(123)
     end
 
     it 'returns all records for a given domain' do
@@ -106,11 +119,12 @@ RSpec.describe DnsMadeEasy::Api::Client do
         .with(headers: request_headers)
         .to_return(status: 200, body: response, headers: {})
 
-      expect(subject.records_for('something.somedomain.boo')).to eq({})
+      expect(subject.records_for(user_domain)).to eq({})
+      expect(subject.all(user_domain)).to eq({})
     end
   end
 
-  describe '#find' do
+  describe 'multiple return values' do
     let(:records_for_response) do
       {
         'data' => [
@@ -121,11 +135,19 @@ RSpec.describe DnsMadeEasy::Api::Client do
     end
 
     before do
-      expect(subject).to receive(:records_for).with('something.somedomain.boo').and_return(records_for_response)
+      expect(subject).to receive(:records_for).with(user_domain).and_return(records_for_response)
     end
 
-    it 'finds the first record that matches name and type' do
-      expect(subject.find('something.somedomain.boo', 'demo', 'A')).to eq('name' => 'demo', 'type' => 'A', 'id' => 123)
+    context '#find_first' do
+      it 'finds the first record that matches name and type' do
+        expect(subject.find_first(user_domain, 'demo', 'A')).to eq('name' => 'demo', 'type' => 'A', 'id' => 123)
+      end
+    end
+
+    context '#find_all' do
+      it 'finds the first record that matches name and type' do
+        expect(subject.find_all(user_domain, 'demo', 'A')).to eq(records_for_response['data'])
+      end
     end
   end
 
@@ -140,17 +162,17 @@ RSpec.describe DnsMadeEasy::Api::Client do
     end
 
     before do
-      expect(subject).to receive(:records_for).with('something.somedomain.boo').and_return(records_for_response)
+      expect(subject).to receive(:records_for).with(user_domain).and_return(records_for_response)
     end
 
     it 'finds the specified record given a name and a type' do
-      expect(subject.find_record_id('something.somedomain.boo', 'demo', 'A')).to eq([123, 143])
+      expect(subject.find_record_ids(user_domain, 'demo', 'A')).to eq([123, 143])
     end
   end
 
   describe '#delete_records' do
     let(:response) { '{}' }
-    let(:domain) { 'something.somedomain.boo' }
+    let(:domain) { user_domain }
     let(:domain_id) { 123 }
 
     context 'with an array of record ids' do
@@ -165,20 +187,20 @@ RSpec.describe DnsMadeEasy::Api::Client do
       end
 
       it 'deletes a list of records from a given domain' do
-        expect(subject.delete_records('something.somedomain.boo', ids)).to eq({})
+        expect(subject.delete_records(user_domain, ids)).to eq({})
       end
     end
 
     context 'with an empty array' do
       it 'returns early without deleting anything' do
-        expect(subject.delete_records('something.somedomain.boo', [])).to eq(nil)
+        expect(subject.delete_records(user_domain, [])).to eq(nil)
       end
     end
   end
 
   describe '#delete_all_records' do
     let(:response) { '{}' }
-    let(:domain) { 'something.somedomain.boo' }
+    let(:domain) { user_domain }
     let(:domain_id) { 123 }
 
     before do
@@ -190,7 +212,7 @@ RSpec.describe DnsMadeEasy::Api::Client do
     end
 
     it 'deletes all records from the domain' do
-      expect(subject.delete_all_records('something.somedomain.boo')).to eq({})
+      expect(subject.delete_all_records(user_domain)).to eq({})
     end
   end
 
@@ -198,7 +220,7 @@ RSpec.describe DnsMadeEasy::Api::Client do
     let(:response) { '{}' }
 
     before do
-      expect(subject).to receive(:get_id_by_domain).with('something.somedomain.boo').and_return(123)
+      expect(subject).to receive(:get_id_by_domain).with(user_domain).and_return(123)
     end
 
     it 'deletes a record' do
@@ -206,7 +228,7 @@ RSpec.describe DnsMadeEasy::Api::Client do
         .with(headers: request_headers)
         .to_return(status: 200, body: response, headers: {})
 
-      expect(subject.delete_record('something.somedomain.boo', 42)).to eq({})
+      expect(subject.delete_record(user_domain, 42)).to eq({})
     end
   end
 
@@ -214,10 +236,10 @@ RSpec.describe DnsMadeEasy::Api::Client do
     let(:response) { '{}' }
 
     before do
-      expect(subject).to receive(:get_id_by_domain).with('something.somedomain.boo').and_return(123)
+      expect(subject).to receive(:get_id_by_domain).with(user_domain).and_return(123)
     end
 
-    let(:domain_name) { 'something.somedomain.boo' }
+    let(:domain_name) { user_domain }
     let(:name) { 'test' }
 
     it 'creates a record' do
@@ -235,11 +257,11 @@ RSpec.describe DnsMadeEasy::Api::Client do
       upper_record_type = record_type.upcase
 
       it "calls through to create record with \"#{upper_record_type}\"" do
-        expect(subject).to receive(:create_record).with('something.somedomain.boo',
+        expect(subject).to receive(:create_record).with(user_domain,
                                                         'smellyface',
                                                         upper_record_type,
                                                         '192.168.1.1', {}).and_return({})
-        expect(subject.send(method_name, 'something.somedomain.boo',
+        expect(subject.send(method_name, user_domain,
                             'smellyface', '192.168.1.1')).to eq({})
       end
     end
@@ -247,8 +269,8 @@ RSpec.describe DnsMadeEasy::Api::Client do
 
   describe '#create_mx_record' do
     it 'creates an mx record' do
-      expect(subject).to receive(:create_record).with('something.somedomain.boo', 'mail', 'MX', '192.168.1.1', 'mxLevel' => 50).and_return({})
-      expect(subject.create_mx_record('something.somedomain.boo', 'mail', 50, '192.168.1.1')).to eq({})
+      expect(subject).to receive(:create_record).with(user_domain, 'mail', 'MX', '192.168.1.1', 'mxLevel' => 50).and_return({})
+      expect(subject.create_mx_record(user_domain, 'mail', 50, '192.168.1.1')).to eq({})
     end
   end
 
@@ -258,7 +280,7 @@ RSpec.describe DnsMadeEasy::Api::Client do
     let(:port) { '4040' }
 
     it 'creates an srv record' do
-      expect(subject).to receive(:create_record).with('something.somedomain.boo',
+      expect(subject).to receive(:create_record).with(user_domain,
                                                       'serv',
                                                       'SRV',
                                                       '192.168.1.1',
@@ -266,7 +288,7 @@ RSpec.describe DnsMadeEasy::Api::Client do
                                                       'weight'   => weight,
                                                       'port'     => port).and_return({})
 
-      expect(subject.create_srv_record('something.somedomain.boo', 'serv',
+      expect(subject.create_srv_record(user_domain, 'serv',
                                        priority,
                                        weight,
                                        port,
@@ -281,14 +303,14 @@ RSpec.describe DnsMadeEasy::Api::Client do
     let(:title) { 'wat' }
 
     it 'creates an srv record' do
-      expect(subject).to receive(:create_record).with('something.somedomain.boo',
+      expect(subject).to receive(:create_record).with(user_domain,
                                                       'redirect', 'HTTPRED', '192.168.1.1',
                                                       'redirectType' => redirect_type,
                                                       'description'  => description,
                                                       'keywords'     => keywords,
                                                       'title'        => title).and_return({})
 
-      expect(subject.create_httpred_record('something.somedomain.boo',
+      expect(subject.create_httpred_record(user_domain,
                                            'redirect',
                                            '192.168.1.1',
                                            redirect_type,
@@ -302,7 +324,7 @@ RSpec.describe DnsMadeEasy::Api::Client do
     let(:response) { '{}' }
 
     before do
-      expect(subject).to receive(:get_id_by_domain).with('something.somedomain.boo').and_return(123)
+      expect(subject).to receive(:get_id_by_domain).with(user_domain).and_return(123)
     end
 
     it 'updates a record' do
@@ -312,7 +334,7 @@ RSpec.describe DnsMadeEasy::Api::Client do
         .with(headers: request_headers, body: body)
         .to_return(status: 200, body: response, headers: {})
 
-      expect(subject.update_record('something.somedomain.boo', 21, 'mail', 'A', '1.1.1.1', {})).to eq({})
+      expect(subject.update_record(user_domain, 21, 'mail', 'A', '1.1.1.1', {})).to eq({})
     end
   end
 
@@ -320,7 +342,7 @@ RSpec.describe DnsMadeEasy::Api::Client do
     let(:response) { '{}' }
 
     before do
-      expect(subject).to receive(:get_id_by_domain).with('something.somedomain.boo').and_return(123)
+      expect(subject).to receive(:get_id_by_domain).with(user_domain).and_return(123)
     end
 
     it 'updates a record' do
@@ -349,7 +371,7 @@ RSpec.describe DnsMadeEasy::Api::Client do
         .with(headers: request_headers, body: body)
         .to_return(status: 200, body: response, headers: {})
 
-      expect(subject.update_records('something.somedomain.boo', records, 'ttl' => 3600)).to eq({})
+      expect(subject.update_records(user_domain, records, 'ttl' => 3600)).to eq({})
     end
   end
 
@@ -385,6 +407,21 @@ RSpec.describe DnsMadeEasy::Api::Client do
     end
   end
 
+  context '#process_response' do
+    let(:response) { double }
+    let(:message) { '403 "Forbidden"' }
+
+    context 'with a 403 response' do
+      before do
+        expect(response).to receive(:value).and_raise(::Net::HTTPServerException.new(message, response))
+      end
+
+      it 'raises a AuthenticationError' do
+        expect { subject.send(:process_response!, response) }.to raise_exception(DnsMadeEasy::AuthenticationError)
+      end
+    end
+  end
+
   describe '#request' do
     before do
       class FakeHeaders < Hash
@@ -404,5 +441,16 @@ RSpec.describe DnsMadeEasy::Api::Client do
       its(:request_limit) { is_expected.to eq(20000) }
       its(:requests_remaining) { is_expected.to eq(2345) }
     end
+  end
+
+
+  describe '.public_operations' do
+    subject { described_class.public_operations }
+    it { is_expected.to include('create_record') }
+    it { is_expected.to include('all') }
+    it { is_expected.not_to include('api_key') }
+    it { is_expected.not_to include('api_secret') }
+    it { is_expected.not_to include('base_url=') }
+    it { is_expected.not_to include('on_production') }
   end
 end

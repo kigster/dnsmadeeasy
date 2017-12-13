@@ -150,8 +150,6 @@ For more information on the actual JSON API, please refer to the [following PDF 
 
 Here is the complete of all methods supported by the `DnsMadeEasy::Api::Client`:
 
-* `base_uri=`
-* `base_uri`
 * `create_a_record`
 * `create_aaaa_record`
 * `create_cname_record`
@@ -171,49 +169,85 @@ Here is the complete of all methods supported by the `DnsMadeEasy::Api::Client`:
 * `delete_records`
 * `domain`
 * `domains`
-* `find_record_id`
-* `find`
+* `find_all`
+* `find_first`
+* `find_record_ids`
 * `get_id_by_domain`
 * `records_for`
-* `request_limit`
-* `requests_remaining`
 * `update_record`
 * `update_records`
 
+### CLI Client
+
+This library offers a simple CLI client that maps CLI arguments to method arguments:
+
+```bash
+❯ dme [ --yaml | --json ] operation [ arg1, arg2, ... ]
+```
+
+For example:
+
+```bash
+❯ dme domains moo.com
+```
+
+is equivalent to `DME.domains("moo.com")`. You can use any operation listed above, for example:
+
+```bash
+❯ dme --yaml find_all moo.com www CNAME
+---
+- dynamicDns: false
+  failed: false
+  gtdLocation: DEFAULT
+  hardLink: false
+  ttl: 60
+  failover: false
+  monitor: false
+  sourceId: 5861234
+  source: 1
+  name: www
+  value: http://ec2-54-202-251-7.us-west-2.compute.amazonaws.com/
+  id: 43509989
+  type: CNAME
+```
 
 ### Managing Domains
+
+> NOTE: below we can be using `@client` instantiated with given key and secret, or 
+> `DME` or `DnsMadeEasy` module.
 
 To retrieve all domains:
 
 ```ruby
-@client.domains
+require 'dnsmadeeasy/dme'
+DME.domains
 ```
 
 To retreive the id of a domain by the domain name:
 
 ```ruby
-@client.get_id_by_domain('test.io')
+DME.get_id_by_domain('test.io')
 ```
 
 To retrieve the full domain record by domain name:
 
 ```ruby
-@client.domain('test.io')
+DME.domain('test.io')
 ```
 
 To create a domain:
 
 ```ruby
-@client.create_domain('test.io')
+DME.create_domain('test.io')
 
 # Multiple domains can be created by:
-@client.create_domains(%w[test.io moo.re])
+DME.create_domains(%w[test.io moo.re])
 ```
 
 To delete a domain:
 
 ```ruby
-@client.delete_domain        ('test.io')
+DME.delete_domain        ('test.io')
 ```
 
 ### Managing Records
@@ -221,62 +255,63 @@ To delete a domain:
 To retrieve all records for a given domain name:
 
 ```ruby
-@client.records_for          ('test.io')
+DME.all('test.io')
 ```
 
 To find the record id for a given domain, name, and type:
 
-This finds the id of the A record 'woah.test.io'.
+This finds all of the IDs matching 'woah.test.io' type 'A':
 
 ```ruby
-@client.find_record_id       ('test.io', 'woah', 'A')
+DME.find_record_ids      ('test.io', 'woah', 'A')
+# => [ 234234, 2342345 ]
 ```
 
 To delete a record by domain name and record id (the record id can be retrieved from `find_record_id`:
 
 ```ruby
-@client.delete_record        ('test.io', 123)
+DME.delete_record        ('test.io', 123)
 
 # To delete multiple records:
 
-@client.delete_records       ('test.io', [123, 143])
+DME.delete_records       ('test.io', [123, 143])
 
 # To delete all records in the domain:
 
-@client.delete_all_records   ('test.io')
+DME.delete_all_records   ('test.io')
 ```
 
 To create a record:
 
 ```ruby
-@client.create_record        ('test.io', 'woah', 'A', '127.0.0.1', { 'ttl' => '60' })
-@client.create_a_record      ('test.io', 'woah', '127.0.0.1', {})
-@client.create_aaaa_record   ('test.io', 'woah', '127.0.0.1', {})
-@client.create_ptr_record    ('test.io', 'woah', '127.0.0.1', {})
-@client.create_txt_record    ('test.io', 'woah', '127.0.0.1', {})
-@client.create_cname_record  ('test.io', 'woah', '127.0.0.1', {})
-@client.create_ns_record     ('test.io', 'woah', '127.0.0.1', {})
-@client.create_spf_record    ('test.io', 'woah', '127.0.0.1', {})
+DME.create_record        ('test.io', 'woah', 'A', '127.0.0.1', { 'ttl' => '60' })
+DME.create_a_record      ('test.io', 'woah', '127.0.0.1', {})
+DME.create_aaaa_record   ('test.io', 'woah', '127.0.0.1', {})
+DME.create_ptr_record    ('test.io', 'woah', '127.0.0.1', {})
+DME.create_txt_record    ('test.io', 'woah', '127.0.0.1', {})
+DME.create_cname_record  ('test.io', 'woah', '127.0.0.1', {})
+DME.create_ns_record     ('test.io', 'woah', '127.0.0.1', {})
+DME.create_spf_record    ('test.io', 'woah', '127.0.0.1', {})
 # Arguments are: domain_name, name, priority, value, options = {}
-@client.create_mx_record     ('test.io', 'woah', 5, '127.0.0.1', {})
+DME.create_mx_record     ('test.io', 'woah', 5, '127.0.0.1', {})
 # Arguments are: domain_name, name, priority, weight, port, value, options = {}
-@client.create_srv_record    ('test.io', 'woah', 1, 5, 80, '127.0.0.1', {})
+DME.create_srv_record    ('test.io', 'woah', 1, 5, 80, '127.0.0.1', {})
 # Arguments are: domain_name, name, value, redirectType, description, keywords, title, options = {}
-@client.create_httpred_record('test.io', 'woah', '127.0.0.1', 'STANDARD - 302',
+DME.create_httpred_record('test.io', 'woah', '127.0.0.1', 'STANDARD - 302',
                               'a description', 'keywords', 'a title', {})
 ```
 
 To update a record:
 
 ```ruby
-@client.update_record        ('test.io', 123, 'woah', 'A', '127.0.1.1',  
+DME.update_record        ('test.io', 123, 'woah', 'A', '127.0.1.1',  
                              { 'ttl' => '60' })
 ```
 
 To update several records:
 
 ```ruby
-@client.update_records('test.io',
+DME.update_records('test.io',
   [
     { 'id'   => 123,
       'name' => 'buddy',
@@ -290,7 +325,7 @@ To update several records:
 To get the number of API requests remaining after a call:
 
 ```ruby
-@client.requests_remaining
+DME.requests_remaining
 #=> 19898
 ```
 > NOTE: Information is not available until an API call has been made
@@ -298,7 +333,7 @@ To get the number of API requests remaining after a call:
 To get the API request total limit after a call:
 
 ```ruby
-@client.request_limit
+DME.request_limit
 #=> 2342
 ```
 >Information is not available until an API call has been made

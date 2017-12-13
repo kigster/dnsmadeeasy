@@ -4,27 +4,46 @@ require 'json'
 require 'uri'
 require 'net/http'
 require 'hashie/mash'
+require 'dnsmadeeasy/credentials'
 
 module DnsMadeEasy
   module Api
     class Client
 
+      class << self
+        def public_operations
+          (new('a', 'b').methods - Object.methods).map(&:to_s).reject { |r| r =~ /[=]$|^(api_|on_|request)/ }.sort
+        end
+      end
+
       attr_accessor :base_uri
-      attr_reader :requests_remaining
-      attr_reader :request_limit
+      attr_reader :requests_remaining,
+                  :request_limit,
+                  :api_key,
+                  :api_secret
 
 
       def initialize(api_key, api_secret, sandbox = false, options = {})
         fail 'api_key is undefined' unless api_key
         fail 'api_secret is undefined' unless api_secret
 
-        @api_key = api_key
-        @api_secret = api_secret
-        @options = options
+        @api_key            = api_key
+        @api_secret         = api_secret
+        @options            = options
         @requests_remaining = -1
-        @request_limit = -1
+        @request_limit      = -1
 
-        self.base_uri = sandbox ? API_BASE_URL_SANDBOX : API_BASE_URL_PRODUCTION
+        sandbox ? on_sandbox : on_production
+      end
+
+
+      def on_sandbox(&block)
+        with_url(::DnsMadeEasy::API_BASE_URL_SANDBOX, &block)
+      end
+
+
+      def on_production(&block)
+        with_url(::DnsMadeEasy::API_BASE_URL_PRODUCTION, &block)
       end
 
 
@@ -71,15 +90,25 @@ module DnsMadeEasy
       end
 
 
-      def find(domain_name, name, type)
+      alias all records_for
+
+
+      def find_all(domain_name, name, type)
         records = records_for(domain_name)
+        return nil unless records
+        records['data'].select { |r| r['name'] == name && r['type'] == type }
+      end
+
+
+      def find_first(domain_name, name, type)
+        records = records_for(domain_name)
+        return nil unless records
         records['data'].detect { |r| r['name'] == name && r['type'] == type }
       end
 
 
-      def find_record_id(domain_name, name, type)
+      def find_record_ids(domain_name, name, type)
         records = records_for(domain_name)
-
         records['data'].select { |r| r['name'] == name && r['type'] == type }.map { |r| r['id'] }
       end
 
@@ -108,6 +137,8 @@ module DnsMadeEasy
         post "/dns/managed/#{get_id_by_domain(domain_name)}/records/", body.merge(options)
       end
 
+
+      # Specific record types
 
       def create_a_record(domain_name, name, value, options = {})
         # TODO: match IPv4 for value
@@ -178,12 +209,12 @@ module DnsMadeEasy
       def update_records(domain, records, options = {})
         body = records.map do |record|
           {
-            'id' => record['id'],
-            'name' => record['name'],
-            'type' => record['type'],
-            'value' => record['value'],
+            'id'          => record['id'],
+            'name'        => record['name'],
+            'type'        => record['type'],
+            'value'       => record['value'],
             'gtdLocation' => record['gtdLocation'],
-            'ttl' => record['ttl']
+            'ttl'         => record['ttl']
           }.merge(options)
         end
         put "/dns/managed/#{get_id_by_domain(domain)}/records/updateMulti/", body
@@ -201,7 +232,7 @@ module DnsMadeEasy
 
       def delete(path, body = nil)
         request(path) do |uri|
-          req = Net::HTTP::Delete.new(uri)
+          req      = Net::HTTP::Delete.new(uri)
           req.body = body.to_json if body
           req
         end
@@ -210,7 +241,7 @@ module DnsMadeEasy
 
       def put(path, body = nil)
         request(path) do |uri|
-          req = Net::HTTP::Put.new(uri)
+          req      = Net::HTTP::Put.new(uri)
           req.body = body.to_json if body
           req
         end
@@ -219,7 +250,7 @@ module DnsMadeEasy
 
       def post(path, body)
         request(path) do |uri|
-          req = Net::HTTP::Post.new(uri)
+          req      = Net::HTTP::Post.new(uri)
           req.body = body.to_json
           req
         end
@@ -229,9 +260,9 @@ module DnsMadeEasy
       def request(path)
         uri = URI("#{base_uri}#{path}")
 
-        http = Net::HTTP.new(uri.host, uri.port)
-        http.use_ssl = true
-        http.verify_mode = OpenSSL::SSL::VERIFY_NONE if @options.key?(:ssl_verify_none)
+        http              = Net::HTTP.new(uri.host, uri.port)
+        http.use_ssl      = true
+        http.verify_mode  = OpenSSL::SSL::VERIFY_NONE if @options.key?(:ssl_verify_none)
         http.open_timeout = @options[:open_timeout] if @options.key?(:open_timeout)
         http.read_timeout = @options[:read_timeout] if @options.key?(:read_timeout)
 
@@ -241,34 +272,52 @@ module DnsMadeEasy
           request[key] = value
         end
 
-        response = http.request(request)
+        process_response!(http.request(request))
+      end
+
+
+      def process_response!(response)
         response.value # raise Net::HTTPServerException unless response was 2xx
-
         process_rate_limits(response)
-
         unparsed_json = response.body.to_s.empty? ? '{}' : response.body
-
         Hashie::Mash.new(JSON.parse(unparsed_json))
+      rescue Net::HTTPServerException => e
+        if e.message =~ /403.*forbidden/i
+          raise ::DnsMadeEasy::AuthenticationError.new(e)
+        else
+          raise e
+        end
       end
 
 
       def process_rate_limits(response)
         response.each_header do |header, value|
           @requests_remaining = value.to_i if header == 'x-dnsme-requestsremaining'
-          @request_limit = value.to_i if header == 'x-dnsme-requestlimit'
+          @request_limit      = value.to_i if header == 'x-dnsme-requestlimit'
         end
       end
 
 
       def request_headers
         request_date = Time.now.httpdate
-        hmac = OpenSSL::HMAC.hexdigest('sha1', @api_secret, request_date)
+        hmac         = OpenSSL::HMAC.hexdigest('sha1', @api_secret, request_date)
         {
-          'Accept' => 'application/json',
-          'x-dnsme-apiKey' => @api_key,
+          'Accept'              => 'application/json',
+          'x-dnsme-apiKey'      => @api_key,
           'x-dnsme-requestDate' => request_date,
-          'x-dnsme-hmac' => hmac
+          'x-dnsme-hmac'        => hmac
         }
+      end
+
+
+      def with_url(url)
+        old_value     = self.base_uri
+        self.base_uri = url
+        if block_given?
+          yield
+          self.base_uri = old_value
+        end
+        self
       end
     end
   end

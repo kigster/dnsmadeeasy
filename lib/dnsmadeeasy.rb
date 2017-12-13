@@ -3,11 +3,12 @@ module DnsMadeEasy
   API_BASE_URL_SANDBOX    = 'https://sandboxapi.dnsmadeeasy.com/V2.0'
 end
 
-require_relative 'dnsmadeeasy/credentials'
-require_relative 'dnsmadeeasy/api/client'
+require 'dnsmadeeasy/credentials'
+require 'dnsmadeeasy/api/client'
 
 module DnsMadeEasy
   class Error < StandardError;  end
+  class AuthenticationError < Error; end
   class APIKeyAndSecretMissingError < Error; end
 
   class << self
@@ -48,8 +49,13 @@ module DnsMadeEasy
     end
 
     def default!
+      assign_default_credentials
+    end
+
+
+    def assign_default_credentials
       if Credentials.exist?
-        self.credentials = Credentials.default_file
+        self.credentials = Credentials.default_credentials_file
       end
     end
 

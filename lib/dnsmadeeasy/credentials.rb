@@ -25,7 +25,7 @@ module DnsMadeEasy
   #
   #
   class Credentials < Hash
-    DEFAULT_CREDENTIALS_FILE = File.expand_path('~/.dnsmadeeasy/credentials.yml').freeze
+    #DEFAULT_CREDENTIALS_FILE = File.expand_path('~/.dnsmadeeasy/credentials.yml').freeze
 
     class CredentialsFileNotFound < StandardError
     end
@@ -33,23 +33,22 @@ module DnsMadeEasy
     #
     # Class Methods
     #
-
+    #
     class << self
-      def exist?(file = DEFAULT_CREDENTIALS_FILE)
+      # Default credential file that's used if no argument is passed.
+      attr_accessor :default_credentials_file
+
+      def exist?(file = default_credentials_file)
         File.exist?(file)
       end
 
-      def load(file = DEFAULT_CREDENTIALS_FILE)
+      def load(file = default_credentials_file)
         validate_argument(file)
 
         new.tap do |local|
           local.merge!(parse_file(file)) if exist?(file)
           local.symbolize!
         end
-      end
-
-      def default_file
-        DEFAULT_CREDENTIALS_FILE
       end
 
 
@@ -72,6 +71,8 @@ module DnsMadeEasy
       end
     end
 
+    # Set the default
+    self.default_credentials_file ||= File.expand_path('~/.dnsmadeeasy/credentials.yml').freeze
 
     # Instance Methods
     # NOTE: we are subclassing Hash, which isn't awesome, but gets the job done.
@@ -116,7 +117,7 @@ module DnsMadeEasy
         when String, Symbol
           hash[key.to_sym] = value
         else
-          hash[key] = value
+          hash[key.to_s.to_sym] = value
       end
     end
 
