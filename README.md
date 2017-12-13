@@ -206,7 +206,7 @@ is equivalent to `DME.domains("moo.com")`. You can use any operation listed abov
   sourceId: 5861234
   source: 1
   name: www
-  value: http://ec2-54-202-251-7.us-west-2.compute.amazonaws.com/
+  value: ec2-54-202-251-7.us-west-2.compute.amazonaws.com
   id: 43509989
   type: CNAME
 ```
