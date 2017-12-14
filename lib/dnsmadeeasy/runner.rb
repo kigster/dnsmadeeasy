@@ -21,11 +21,11 @@ module DnsMadeEasy
 
 
     def execute!
-      if argv.empty? || argv.size < 2
+      if argv.empty? || argv.size < 1
         print_help_message
       else
         self.operation = argv.shift.to_sym
-        call_through_client(operation)
+        exit call_through_client(operation)
       end
     end
 
@@ -45,11 +45,48 @@ module DnsMadeEasy
           else
             print_formatted(result, format)
         end
+        0
+      rescue ArgumentError => e
+        sig = method_signature(e, method)
+        (sig.shift == method.to_s) ?
+          print_signature(method, sig) :
+          print_error('Action', "#{method.to_s.bold.yellow}", 'has generated an error'.red, exception: e)
+        1
       rescue NoMethodError
-        puts 'Action '.red + "#{method.to_s.bold.yellow} " + 'is not valid.'.red
+        print_error('Action', "#{method.to_s.bold.yellow}", 'is not valid.'.red)
+        puts 'HINT: try running ' + 'dme operations'.bold.green + ' to see the list of valid operations.'
+        2
       rescue Net::HTTPServerException => e
-        puts "Error — #{e.message.red}".bold.red
+        print_error(exception: e)
+        3
       end
+    end
+
+
+    def print_error(*args, exception: nil)
+      unless args.empty?
+        puts <<-EOF
+#{'Error:'.bold.red} #{args.join(' ').red}
+        EOF
+      end
+
+      if exception
+        puts <<-EOF
+#{'Exception: '.bold.red}#{exception.inspect.red}
+        EOF
+      end
+    end
+
+
+    def print_signature(method, sig)
+      puts <<-EOF
+#{'Error: '.bold.yellow}
+  #{'You are missing some arguments for this operation:'.red}
+
+#{'Correct Usage: '.bold.yellow}
+  #{method.to_s.bold.green} #{sig.join(' ').blue }
+
+      EOF
     end
 
 
@@ -87,11 +124,11 @@ module DnsMadeEasy
     def print_usage_message
       puts <<-EOF
 #{'Usage:'.bold.yellow}
-      #{'# Execute an API call:'.dark}  
+  #{'# Execute an API call:'.dark}
   #{"dme [ #{SUPPORTED_FORMATS.map { |f| "--#{f}" }.join(' | ')} ] operation [ arg1 arg2 ... ] ".bold.green}
-  
+
   #{'# Print suported operations:'.dark}
-  #{'dme operations'.bold.green}
+  #{'dme op[erations]'.bold.green}
 
       EOF
     end
@@ -123,11 +160,12 @@ module DnsMadeEasy
 
     def print_supported_operations
       puts <<-EOF
+#{'Actions:'.bold.yellow}      
+  Checkout the README and RubyDoc for the arguments to each operation,
+  which is basically a method on a DnsMadeEasy::Api::Client instance.
+  #{'http://www.rubydoc.info/gems/dnsmadeeasy/DnsMadeEasy/Api/Client'.blue.bold.underlined}
 
 #{'Valid Operations Are:'.bold.yellow}
-    Checkout the README and RubyDoc for the arguments to each operation,
-    which is basically a method on a DnsMadeEasy::Api::Client instance.
-
   #{DnsMadeEasy::Api::Client.public_operations.join("\n  ").green.bold}
 
       EOF
@@ -140,6 +178,25 @@ module DnsMadeEasy
       else
         ap(result, indent: 10)
       end
+    end
+
+
+    # e.backtrack.first looks like this:
+    # ..../dnsmadeeasy/lib/dnsmadeeasy/api/client.rb:143:in `create_a_record'
+    def method_signature(e, method)
+      file, line, call_method = e.backtrace.first.split(':')
+      call_method             = call_method.gsub(/[']/, '').split('`').last
+      if call_method && call_method.to_sym == method.to_sym
+        source_line = File.open(file).to_a[line.to_i - 1].chomp!
+        if source_line =~ /def #{method}/
+          signature = source_line.strip.gsub(/,/, '').split(%r{[ ()]})
+          signature.shift # remove def
+          return signature.reject { |a| a =~ /^([={}\)\(])*$/ }
+        end
+      end
+      []
+    rescue
+      []
     end
   end
 end

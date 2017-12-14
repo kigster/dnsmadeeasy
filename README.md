@@ -54,26 +54,40 @@ Once you have the key and the secret, you have several choices:
      DnsMadeEasy.domains.data.first.name #=> 'moo.gamespot.com'     
      ```
 
-### Shortcut Module `DME` and `DnsMadeEasy` Namespaces
+### Which Namespace to Use? What is `DME` versus `DnsMadeEasy`?
 
-Since `DnsMadeEasy` is a bit of a mouthful, we decided to offer (in addition) the abbreviated module `DME` that simply forwards all method calls to `DnsMadeEasy`. You can now `require 'dme'` to get all of the DnsMadeEasy client library loaded up, assuming it does not clash with any other `dme` file in your project.
+Since `DnsMadeEasy` is a bit of a mouthful, we decided to offer (in addition to the standard `DnsMadeEasy` namespace) the abbreviated module `DME` that simply forwards all messages to the module `DnsMadeEasy`. If in your Ruby VM there is no conflicting top-level class `DME`, then you can `require 'dnsmadeeasy/dme'` to get all of the DnsMadeEasy client library functionality without having to type the full name once. You can even do `require 'dme'`.
 
-And then you can use `DME.method(*args)` as you would on `DnsMadeEasy.method(*args)` or on the instance of the actual worker-horse class of this library, the gorgeous blone with a very long name: `DnsMadeEasy::Api::Client`.
+Whenever you require `dme` you also import the `DnsMadeEasy` namespace.  **The opposite is not true.** 
 
+So if you DO have a name clash with another top-level module `DME`, simply do `require 'dnsmadeeasy'` and none of the `DME` module namespace will be loaded.
+
+In a nutshell you have three ways to access all methods provided by the [`DnsMadeEasy::Api::Client`](http://www.rubydoc.info/gems/dnsmadeeasy/DnsMadeEasy/Api/Client) class:
+
+ 1. Instantiate and use the client class directly,
+ 2. Use the top-level module `DnsMadeEasy` with `require 'dnsmadeeasy'`
+ 3. Use the shortened top-level module `DME` with `require 'dnsmadeeasy/dme'`
 
 ### Examples
 
 If you are planning on accessing *only one DnsMadeEasy account from the same Ruby VM*, it's recommended that you save your credentials (the API key and the secret) in the above mentioned file `~/.dnsmadeeasy/credentials.yml`.
 
-> **NOTE: DO NOT check that file into your repo!**  
-> **NOTE: The examples that follow assume credentials have been read from that file.**
+___
+
+> **NOTE:**
+> 
+> * DO NOT check that file into your repo!  
+> * The examples that follow assume credentials have been read from that file.
+
+___
 
 Using the `DME` module (or `DnsMadeEasy` if you prefer) you can access all of your records through the available API method calls, for example:
 
-
 ```ruby
-IRB(main):003:0> require 'dme' #=> true
-IRB(main):003:0> DME.domains.data.map(&:name)
+IRB > require 'dme' #=> true
+# Or you can also do
+IRB > require 'dnsmadeeasy/dme' #=> true
+IRB > DME.domains.data.map(&:name)
  ⤷ ["demo.gamespot.systems",
       "dev.gamespot.systems",
              "gamespot.live",
@@ -82,17 +96,17 @@ IRB(main):003:0> DME.domains.data.map(&:name)
    ]
 
 # These have been read from the file ~/.dnsmadeeasy/credentials.yml
-IRB(main):008:0> DME.api_key
+IRB > DME.api_key
  ⤷ "2062259f-f666b17-b1fa3b48-042ad4030"
 
-IRB(main):009:0> DME.api_secret
+IRB > DME.api_secret
  ⤷ "2265bc3-e31ead-95b286312e-c215b6a0"
  
-IRB(main):011:0> DME.domain('gamespot.live').delegateNameServers
+IRB > DME.domain('gamespot.live').delegateNameServers
  ⤷ #<Hashie::Array ["ns-125-c.gandi.net.", "ns-129-a.gandi.net.", "ns-94-b.gandi.net."]>
 
 # Let's inspect the Client — after all, all methods are simply delegated to it:
-IRB(main):010:0> @client = DME.client
+IRB > @client = DME.client
  ⤷ #<DnsMadeEasy::Api::Client:0x00007fb6b416a4c8
     @api_key="2062259f-f666b17-b1fa3b48-042ad4030",
     @api_secret="2265bc3-e31ead-95b286312e-c215b6a0",
@@ -105,21 +119,15 @@ IRB(main):010:0> @client = DME.client
 Next, let's fetch a particular domain, get it's records and compute the counts for each record type, such as 'A', 'NS', etc.
 
 ```ruby
-IRB(main):016:0> records = DME.records_for('gamespot.com')
-
-IRB(main):017:0> [ records.totalPages, records.totalRecords ]
+IRB > records = DME.records_for('gamespot.com')
+IRB > [ records.totalPages, records.totalRecords ]
  ⤷ [1, 33]
- 
-IRB(main):016:0> records.data.select{|f| f.type == 'A' }.map(&:name)
+IRB > records.data.select{|f| f.type == 'A' }.map(&:name)
  ⤷ ["www", "vpn-us-east1", "vpn-us-east2", "staging", "yourmom"]
- 
- IRB(main):026:0> types = records.data.map(&:type)
- ⤷ ["MX", "MX", "TXT", "CNAME", "CNAME", "NS", "NS", "NS", "NS", "NS", "NS", 
-     "NS", "NS", "NS", "NS", "A", "NS", "NS", "NS", "NS", "NS", "NS", "NS", 
-     "NS", "NS", "NS", "NS", "NS", "CNAME", "A", "A", "A", "A"]
-
-IRB(main):027:0> require 'awesome_print' 
-IRB(main):028:0> ap Hash[types.group_by {|x| x}.map {|k,v| [k,v.count]}]
+IRB > types = records.data.map(&:type)
+ ⤷ [....]
+IRB > require 'awesome_print' 
+IRB > ap Hash[types.group_by {|x| x}.map {|k,v| [k,v.count]}]
 {
        "MX" => 2,
       "TXT" => 1,
@@ -136,25 +144,37 @@ All public methods of this library return a Hash-like object, that is actually a
 > NOTE: `to_hash` converts the entire object to a regular hash, including the deeply nested hashes, while `to_h` only converts the primary object, but not the nested hashes. Here is an example below — in the first instance where we call `to_h` we are still able to call `.value` on the nested object, because only the top-level `Mash` has been converted into a `Hash`. In the second example, this call fails, because this method does not exist, and the value must be accessed via the square brackets:
 > 
 > ```ruby
-> IRB(main):060:0> recs.to_h['data'].last.value
->  ⤷ 54.200.26.233
-> IRB(main):061:0> recs.to_hash['data'].last.value
-> NoMethodError: undefined method `value' for #<Hash:0x00007fe36fab0f68>
-> IRB(main):062:0> recs.to_hash['data'].last['value']
->  ⤷ 54.200.26.233
+> IRB > recs.to_h['data'].last.value
+>  ⤷ "54.200.26.233"
+> IRB > recs.to_hash['data'].last.value
+> "NoMethodError: undefined method `value` for #<Hash:0x00007fe36fab0f68>"
+> IRB > recs.to_hash['data'].last['value']
+>  ⤷ "54.200.26.233"
 > ```
 
 For more information on the actual JSON API, please refer to the [following PDF document](http://www.dnsmadeeasy.com/integration/pdf/API-Docv2.pdf).
 
-## Method Calls
+## Available Actions
 
 Here is the complete of all methods supported by the `DnsMadeEasy::Api::Client`:
 
+#### Domains
+
+* `create_domain`
+* `create_domains`
+* `delete_domain`
+* `domain`
+* `domains`
+* `get_id_by_domain`
+
+#### Records
+
+* `records_for`
+* `all`
+* `base_uri`
 * `create_a_record`
 * `create_aaaa_record`
 * `create_cname_record`
-* `create_domain`
-* `create_domains`
 * `create_httpred_record`
 * `create_mx_record`
 * `create_ns_record`
@@ -164,25 +184,79 @@ Here is the complete of all methods supported by the `DnsMadeEasy::Api::Client`:
 * `create_srv_record`
 * `create_txt_record`
 * `delete_all_records`
-* `delete_domain`
 * `delete_record`
 * `delete_records`
-* `domain`
-* `domains`
 * `find_all`
 * `find_first`
 * `find_record_ids`
-* `get_id_by_domain`
-* `records_for`
-* `update_record`
-* `update_records`
 
-### CLI Client
+## CLI Client
 
-This library offers a simple CLI client that maps CLI arguments to method arguments:
+This library offers a simple CLI client `dme` that maps the command line arguments to method arguments for corresponding actions:
 
 ```bash
-❯ dme [ --yaml | --json ] operation [ arg1, arg2, ... ]
+❯ dme --help
+Usage:
+  # Execute an API call:
+  dme [ --json | --yaml ] operation [ arg1 arg2 ... ]
+
+  # Print suported operations:
+  dme op[erations]
+
+Credentials:
+  Store your credentials in a YAML file
+  /Users/kig/.dnsmadeeasy/credentials.yml as follows:
+
+  credentials:
+    api_key: XXXX
+    api_secret: YYYY
+
+Examples:
+   dme domain moo.com
+   dme --json domain moo.com
+   dme find_all moo.com A www
+   dme find_first moo.com CNAME vpn-west
+   dme --yaml find_first moo.com CNAME vpn-west
+```
+
+You can run `dme operations` to see the supported list of operations:
+
+```bash
+❯ dme op
+Actions:
+  Checkout the README and RubyDoc for the arguments to each operation,
+  which is basically a method on a DnsMadeEasy::Api::Client instance.
+  http://www.rubydoc.info/gems/dnsmadeeasy/DnsMadeEasy/Api/Client
+
+Valid Operations Are:
+  all
+  base_uri
+  create_a_record
+  create_aaaa_record
+  create_cname_record
+  create_domain
+  create_domains
+  create_httpred_record
+  create_mx_record
+  create_ns_record
+  create_ptr_record
+  create_record
+  create_spf_record
+  create_srv_record
+  create_txt_record
+  delete_all_records
+  delete_domain
+  delete_record
+  delete_records
+  domain
+  domains
+  find_all
+  find_first
+  find_record_ids
+  get_id_by_domain
+  records_for
+  update_record
+  update_records
 ```
 
 For example:
@@ -191,7 +265,7 @@ For example:
 ❯ dme domains moo.com
 ```
 
-is equivalent to `DME.domains("moo.com")`. You can use any operation listed above, for example:
+is equivalent to `DME.domains("moo.com")`. You can use any operation listed above, and output the result in either `YAML` or `JSON` (in addition to the default "awesome_print"), for example:
 
 ```bash
 ❯ dme --yaml find_all moo.com www CNAME
@@ -239,7 +313,6 @@ To create a domain:
 
 ```ruby
 DME.create_domain('test.io')
-
 # Multiple domains can be created by:
 DME.create_domains(%w[test.io moo.re])
 ```
@@ -267,24 +340,22 @@ DME.find_record_ids      ('test.io', 'woah', 'A')
 # => [ 234234, 2342345 ]
 ```
 
-To delete a record by domain name and record id (the record id can be retrieved from `find_record_id`:
-
 ```ruby
+# To delete a record by domain name and record id (the record id can be retrieved from `find_record_id`:
 DME.delete_record        ('test.io', 123)
-
 # To delete multiple records:
-
 DME.delete_records       ('test.io', [123, 143])
-
 # To delete all records in the domain:
-
 DME.delete_all_records   ('test.io')
 ```
 
-To create a record:
+To create records of various types:
 
 ```ruby
+# The generic method:
 DME.create_record        ('test.io', 'woah', 'A', '127.0.0.1', { 'ttl' => '60' })
+
+# Specialized methods:
 DME.create_a_record      ('test.io', 'woah', '127.0.0.1', {})
 DME.create_aaaa_record   ('test.io', 'woah', '127.0.0.1', {})
 DME.create_ptr_record    ('test.io', 'woah', '127.0.0.1', {})
@@ -292,20 +363,27 @@ DME.create_txt_record    ('test.io', 'woah', '127.0.0.1', {})
 DME.create_cname_record  ('test.io', 'woah', '127.0.0.1', {})
 DME.create_ns_record     ('test.io', 'woah', '127.0.0.1', {})
 DME.create_spf_record    ('test.io', 'woah', '127.0.0.1', {})
+```
+
+#### Specialized Record Types
+
+Below are the method calls for `MX`, `SRV`, and `HTTPRED` types:
+
+```ruby
 # Arguments are: domain_name, name, priority, value, options = {}
 DME.create_mx_record     ('test.io', 'woah', 5, '127.0.0.1', {})
 # Arguments are: domain_name, name, priority, weight, port, value, options = {}
 DME.create_srv_record    ('test.io', 'woah', 1, 5, 80, '127.0.0.1', {})
-# Arguments are: domain_name, name, value, redirectType, description, keywords, title, options = {}
+# Arguments are: domain_name, name, value, redirectType, 
 DME.create_httpred_record('test.io', 'woah', '127.0.0.1', 'STANDARD - 302',
+                               # description, keywords, title, options = {}
                               'a description', 'keywords', 'a title', {})
 ```
 
 To update a record:
 
 ```ruby
-DME.update_record        ('test.io', 123, 'woah', 'A', '127.0.1.1',  
-                             { 'ttl' => '60' })
+DME.update_record('test.io', 123, 'woah', 'A', '127.0.1.1',  { 'ttl' => '60' })
 ```
 
 To update several records:
@@ -336,7 +414,8 @@ To get the API request total limit after a call:
 DME.request_limit
 #=> 2342
 ```
->Information is not available until an API call has been made
+> NOTE: Information is not available until an API call has been made
+
 
 ## Installation
 
@@ -371,7 +450,7 @@ The current maintainer [Konstantin Gredeskoul](https://github.com/kigster) wishe
 
  * Arnoud Vermeer for the original `dnsmadeeasy-rest-api` gem
  * Andre Arko, Paul Henry, James Hart formerly of [Wanelo](wanelo.com) fame, for bringing the REST API gem up to the level.
- * Phil Cohen, who graciously transferred the ownership of this gem on RubyGems to the current maintainer.
+ * Phil Cohen, who graciously transferred the ownership of the name of this gem on RubyGems.org to the current maintainer.
 
 
 ## Contributing
@@ -381,3 +460,5 @@ Bug reports and pull requests are welcome on GitHub at [https://github.com/kigst
 ## License
 
 The gem is available as open source under the terms of the [MIT License](http://opensource.org/licenses/MIT).
+
+
