@@ -1,84 +1,8 @@
 #!/usr/bin/env ruby
 
-require 'colored2'
-require 'awesome_print'
-require 'dnsmadeeasy'
-require 'dnsmadeeasy/api/client'
+require 'dnsmadeeasy/runner'
 
-if ENV['DNSMADEEASY_API_KEY'] && ENV['DNSMADEEASY_API_SECRET']
-  DnsMadeEasy.configure do |config|
-    config.api_key    = ENV['DNSMADEEASY_API_KEY']
-    config.api_secret = ENV['DNSMADEEASY_API_SECRET']
-  end
-else
-  DnsMadeEasy.credentials = (ENV['DNSMADEEASY_CREDENTIALS'] || DnsMadeEasy::Credentials.default_credentials_file)
-end
+DnsMadeEasy::Runner.new(ARGV).execute!
 
-SUPPORTED_FORMATS = %w(json yaml)
-
-format = nil
-if ARGV.first&.start_with?('--')
-  format = ARGV.shift.gsub(/^--/, '')
-  unless SUPPORTED_FORMATS.include?(format)
-    puts "Error: format #{format.bold.red} is not supported."
-    puts "Supported values are: #{SUPPORTED_FORMATS.join(', ')}"
-    exit 1
-  end
-end
-
-def print_formatted(result, format = nil)
-  if format
-    puts result.send("to_#{format}".to_sym)
-  else
-    ap(result, indent: 10)
-  end
-end
-
-if ARGV.empty? || ARGV.size < 2
-  puts <<-EOF
-#{'Usage:'.bold.yellow} 
-  dme [ #{SUPPORTED_FORMATS.map{|f| "--#{f}"}.join(' | ')} ] operation [ arg1 arg2 ... ]
-
-#{'Credentials:'.bold.yellow}
-  Store your credentials in a YAML file 
-  #{DnsMadeEasy::Credentials.default_credentials_file} as follows:
-
-  #{'credentials:
-    api_key: XXXX
-    api_secret: YYYY'.bold.magenta}
-
-  #{'Eg:'.bold.yellow}
-  dme domain moo.com
-  dme find_all moo.com A www
-  dme find_first moo.com CNAME host1
-
-#{'Operations:'.bold.yellow}
-  Checkout the README and RubyDoc for the arguments to each operation,
-  which is basically a method on DnsMadeEasy::Api::Client instance.
- 
-#{'Valid Operations Are:'.bold.yellow}
-  #{DnsMadeEasy::Api::Client.public_operations.join("\n  ").green.bold}
-
-  EOF
-  exit 1
-else
-  method = ARGV.shift.to_sym
-  require 'pp'
-  begin
-    result = DnsMadeEasy.client.send(method, *ARGV)
-    case result
-      when NilClass
-        puts 'No records returned.'
-      when Hashie::Mash
-        print_formatted(result.to_hash, format)
-      when Array
-        print_formatted(result.map(&:to_hash), format)
-      else
-        print_formatted(result, format)
-    end
-  rescue Net::HTTPServerException => e
-    puts "Error: #{e.message}"
-  end
-end
 
 

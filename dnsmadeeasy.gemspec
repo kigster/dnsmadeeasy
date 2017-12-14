@@ -18,6 +18,19 @@ Gem::Specification.new do |spec|
   spec.email         = %w(kigster@gmail.com letuboy@gmail.com hjhart@gmail.com)
   spec.summary       = DnsMadeEasy::DESCRIPTION
   spec.description   = DnsMadeEasy::DESCRIPTION
+  spec.post_install_message = <<-EOF
+
+Thank you for using the DnsMadeEasy ruby gem, the Ruby client 
+API for DnsMadeEasy.com's SDK v2. Please note that this gem 
+comes with a command line utility 'dme' which you can use 
+instead of the ruby API if you prefer. Run `dme` with no
+arguments to see the help message.
+
+You can store your credentials in a YAML file in your home
+directory. For more information, please see README at:
+https://github.com/kigster/dnsmadeeasy
+
+  EOF
 
   spec.homepage      = 'https://github.com/kigster/dnsmadeeasy'
   spec.license       = 'MIT'
