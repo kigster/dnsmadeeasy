@@ -13,8 +13,8 @@ module DnsMadeEasy
       DnsMadeEasy.instance_variable_set(:@sandbox_client, nil)
     end
 
-    let(:api_key) { 'soooo secret' }
-    let(:api_secret) { 'soooo secret' }
+    let(:api_key) { '12345678-a8f8-4466-ffff-2324aaaa9098' }
+    let(:api_secret) { '43009899-abcc-ffcc-eeee-09f809808098' }
 
     context 'real client' do
       subject(:client) { described_class.client }
@@ -24,10 +24,6 @@ module DnsMadeEasy
       context 'without the key and secret' do
         let(:api_key) { nil }
         let(:api_secret) { nil }
-
-        before do
-          expect(DnsMadeEasy).to receive(:assign_default_credentials)
-        end
 
         it 'should raise ArgumentError' do
           expect { client }.to raise_error(APIKeyAndSecretMissingError)
@@ -47,10 +43,10 @@ module DnsMadeEasy
 
     context 'file credentials' do
       let(:file) { spec_credentials_file }
-      let(:key) { '2062259f-f666b17-b1fa3b48-042ad4030' }
-      let(:secret) { '2265bc3-e31ead-95b286312e-c215b6a0' }
+      let(:key) { '12345678-a8f8-4466-ffff-2324aaaa9098' }
+      let(:secret) { '43009899-abcc-ffcc-eeee-09f809808098' }
 
-      before { DnsMadeEasy.credentials = file }
+      before { DnsMadeEasy.configure_from_file(file) }
 
       it 'should now correct set api_key' do
         expect(DnsMadeEasy.api_key).to eq key
@@ -65,23 +61,6 @@ module DnsMadeEasy
       end
     end
 
-    context 'default credentials' do
-      before do
-        DnsMadeEasy.configure do |config|
-          config.api_key    = nil
-          config.api_secret = nil
-        end
-        DnsMadeEasy.instance_variable_set(:@client, nil)
-        allow(DnsMadeEasy::Credentials).to receive(:default_credentials_file).and_return(spec_credentials_file)
-      end
-
-      let(:spec_credentials) { Credentials.load(spec_credentials_file) }
-      subject { DnsMadeEasy.client }
-
-      its(:api_key) { should eq spec_credentials.api_key }
-      its(:api_secret) { should eq spec_credentials.api_secret }
-    end
-
     context 'unknown method' do
       let(:bad_method) { :i_am_a_bad_method }
       it 'should raise NameError' do
@@ -89,5 +68,4 @@ module DnsMadeEasy
       end
     end
   end
-
 end

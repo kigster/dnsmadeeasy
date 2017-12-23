@@ -12,36 +12,20 @@ This is a fully featured REST API client for DnsMadeEasy provider. DME is an **e
 
 **DnsMadeEasy** allows you to fetch, create, update DNS records, as long as you know your API key and the secret.
 
+### Setting up Credentials
+
 You can find your API Key and Secret on the [Account Settings Page](https://cp.dnsmadeeasy.com/account/info) of their UI.
 
 Once you have the key and the secret, you have several choices:
 
-  1. Perhaps the most conveniently, you can store them in a small YAML file, that must be placed in a specific location within your home folder:  `~/.dnsmadeeasy/credentials.yml`. The file should look like this one below (NOTE: these are not real credentials, btw):
-
-      ```yaml
-      # file: ~/.dnsmadeeasy/credentials.yml
-      credentials:
-        api_key: 2062259f-f666b17-b1fa3b48-042ad4030
-        api_secret: 2265bc3-e31ead-95b286312e-c215b6a0
-      ```
-
-      With this file existing, you can query right away, by using the shortcut module `DME`, such as         
-
-      ```ruby
-      require 'dme'
-      DME.domains.data.first.name #=> 'moo.gamespot.com'
-      ```
-
-  2. Or, you can directly instantiate a new instance of the `Client` class, by passing your API key and API secrets as arguments:
+  1. You can directly instantiate a new instance of the `Client` class, by passing your API key and API secrets as arguments:
 
       ```ruby
       require 'dnsmadeeasy'
       @client = DnsMadeEasy::Api::Client.new(api_key, api_secret)
       ```
 
-      The advantage of this method is that you can query multiple DnsMadeEasy accounts from the same Ruby VM. With other methods, only one account can be connected to.
-
-  3. Or, you can use the `DnsMadeEasy.configure` method to configure the key/secret pair, and then use `DnsMadeEasy` namespace to call the methods:
+  2. Or, you can use the `DnsMadeEasy.configure` method to configure the key/secret pair, and then use `DnsMadeEasy` namespace to call the methods:
 
      ```ruby
      require 'dnsmadeeasy'
@@ -54,6 +38,63 @@ Once you have the key and the secret, you have several choices:
      DnsMadeEasy.domains.data.first.name #=> 'moo.gamespot.com'     
      ```
 
+     Once you configure the keys, you can also use the shortcut module to save you some typing:
+     
+     ```ruby
+     require 'dnsmadeeasy/dme'
+     DME.domains.data.first.name #=> 'moo.gamespot.com'
+     ```
+     
+     This has the advantage of being much shorter, but might conflict with existing modules in your Ruby VM. 
+     In this case, just do not require `dnsmadeeasy/dme` and only require `dnsmadeeasy`, and you'll be fine.
+     Otherwise, using `DME` is identical to using `DnsMadeEasy`, assuming you required `dnsmadeeasy/dme` file.
+
+  3. Configuring API keys as above is easy, and can be done using environment variables. Alternatively, it may be convenient to store credentials in a YAML file. 
+
+     * If filename is not specified, there is default location where this file is searched, which is `~/.dnsmadeeasy/credentials.yml`.
+     * If filename is provided, it will be read, and must conform to the following format:
+   
+     **Simple Credentials Format**
+
+      ```yaml
+      # file: ~/.dnsmadeeasy/credentials.yml
+      credentials:
+          api_key: 2062259f-f666b17-b1fa3b48-042ad4030
+          api_secret: 2265bc3-e31ead-95b286312e-c215b6a0
+      ```
+
+     **Multi-Account Credentials Format**
+     
+     Below you see two accounts, with production key and secret being encrypted. See [further below](#encryption) about encrypting your key and secrets.
+
+      ```yaml
+      accounts:
+        - name: development
+          default_account: true
+          credentials:
+            api_key: 12345678-a8f8-4466-ffff-2324aaaa9098
+            api_secret: 43009899-abcc-ffcc-eeee-09f809808098
+        - name: production
+          credentials:
+            api_key: "BAhTOh1TeW06OkRhdGE6OldyYXBwZXJT............"
+            api_secret: "BAhTOh1TeW06OkRhdGE6OldyYXBwZ............"
+            encryption_key: spec/fixtures/sym.key
+      ```
+
+     You can use the following method to access both simple and multi-account YAML configurations:
+     
+     ```ruby
+     require 'dnsmadeeasy'
+     DnsMadeEasy.configure_from_file(file, account_name = nil, encryption_key = nil)
+
+     # for example:
+     DnsMadeEasy.configure_from_file('config/dme.yaml', 'production')
+     DnsMadeEasy.domains #=> [ ... ]
+
+     # or with encrypted key passed as an argument to decrypt YAML values:
+     DnsMadeEasy.configure_from_file('config/dme.yaml', 'production', ENV['PRODUCTION_KEY'])
+     ```
+   
 ### Which Namespace to Use? What is `DME` versus `DnsMadeEasy`?
 
 Since `DnsMadeEasy` is a bit of a mouthful, we decided to offer (in addition to the standard `DnsMadeEasy` namespace) the abbreviated module `DME` that simply forwards all messages to the module `DnsMadeEasy`. If in your Ruby VM there is no conflicting top-level class `DME`, then you can `require 'dnsmadeeasy/dme'` to get all of the DnsMadeEasy client library functionality without having to type the full name once. You can even do `require 'dme'`.
@@ -67,19 +108,20 @@ In a nutshell you have three ways to access all methods provided by the [`DnsMad
  1. Instantiate and use the client class directly,
  2. Use the top-level module `DnsMadeEasy` with `require 'dnsmadeeasy'`
  3. Use the shortened top-level module `DME` with `require 'dnsmadeeasy/dme'`
-
+   
+      
 ### Examples
 
-If you are planning on accessing *only one DnsMadeEasy account from the same Ruby VM*, it's recommended that you save your credentials (the API key and the secret) in the above mentioned file `~/.dnsmadeeasy/credentials.yml`.
-
+Whether or not you are accessing a single account or multiple, it is recommended that you save your credentials (the API key and the secret) encrypted in the above mentioned file `~/.dnsmadeeasy/credentials.yml` (or any file of you preference).
 ___
 
 > **NOTE:**
 > 
-> * DO NOT check that file into your repo!  
-> * The examples that follow assume credentials have been read from that file.
-
+> * DO NOT check that file into your repo! 
+> * If you use encryption, do not check in your key!  
 ___
+
+The examples that follow assume credentials have already been configured, and so we explore the API.
 
 Using the `DME` module (or `DnsMadeEasy` if you prefer) you can access all of your records through the available API method calls, for example:
 
@@ -189,6 +231,42 @@ Here is the complete of all methods supported by the `DnsMadeEasy::Api::Client`:
 * `find_all`
 * `find_first`
 * `find_record_ids`
+
+
+<a name="encryption"></a>
+
+### Encryption
+
+It was mentioned above that the credentials YAML file may contain encrypted values. This facility is provided by the encryption gem [Sym](https://github.com/kigster/sym). 
+
+In order to encrypt your values, you need to perform the following steps:
+
+```bash
+gem install sym
+
+# let's generate a new key and save it to a file:
+sym -g -o my.key
+
+# if you are on Mac OS-X, you can import the key into the KeyChain.
+# this creates an entry in the keychain named 'my.key' that can be used later.
+sym -g -x my.key
+```
+
+Once you have the key generated, first, **make sure to never commit this to any repo!**. You can use 1Password for it, or something like that.
+
+Let's encrypt our actual API key:
+
+```bash
+api_key="12345678-a8f8-4466-ffff-2324aaaa9098"
+api_secret="43009899-abcc-ffcc-eeee-09f809808098"
+sym -ck my.key -e -s "${api_key}"
+# => prints the encrypted value
+
+# On a mac, you can copy it to clipboard:
+sym -ck my.key -e -s "${api_secret}" | pbcopy
+```
+
+Now, you place the encrypted values in the YAML file, and you can save "my.key" as the value against `encryption_key:` at the same level as the `api_key` and `api_secret` in the YAML file. This value can either point to a file path, or be a keychain name, or even a name of an environment variable. For full details, please see [sym documentation](https://github.com/kigster/sym#using-sym-with-the-command-line). 
 
 ## CLI Client
 

@@ -1,0 +1,30 @@
+---
+engines:
+  duplication:
+    enabled: false
+    config:
+      languages:
+      - ruby
+      - javascript
+      - python
+      - php
+  fixme:
+    enabled: false
+  rubocop:
+    enabled: true
+    checks:
+      Rubocop/Metrics/MethodLength:
+        enabled: false
+      Rubocop/Metrics/CyclomaticComplexity:
+        enabled: false
+ratings:
+  paths:
+  - "**.inc"
+  - "**.js"
+  - "**.jsx"
+  - "**.module"
+  - "**.php"
+  - "**.py"
+  - "**.rb"
+exclude_paths:
+- spec/

@@ -8,27 +8,24 @@ require 'dnsmadeeasy/api/client'
 
 module DnsMadeEasy
   class Runner
-    SUPPORTED_FORMATS = %w(json yaml)
+    SUPPORTED_FORMATS = %w(json json_pretty yaml pp)
 
     attr_accessor :format, :argv, :operation
 
-
     def initialize(argv = nil)
-      self.argv = argv || ARGV.dup
-      configure_authentication
+      self.argv   = argv || ARGV.dup
       self.format = process_flags_format
     end
-
 
     def execute!
       if argv.empty? || argv.size < 1
         print_help_message
       else
+        configure_authentication
         self.operation = argv.shift.to_sym
         exit call_through_client(operation)
       end
     end
-
 
     private
 
@@ -52,7 +49,10 @@ module DnsMadeEasy
           print_signature(method, sig) :
           print_error('Action', "#{method.to_s.bold.yellow}", 'has generated an error'.red, exception: e)
         1
-      rescue NoMethodError
+      rescue NoMethodError => e
+
+        puts e.backtrace.reverse.join("\n").red
+
         print_error('Action', "#{method.to_s.bold.yellow}", 'is not valid.'.red)
         puts 'HINT: try running ' + 'dme operations'.bold.green + ' to see the list of valid operations.'
         2
@@ -61,7 +61,6 @@ module DnsMadeEasy
         3
       end
     end
-
 
     def print_error(*args, exception: nil)
       unless args.empty?
@@ -77,18 +76,16 @@ module DnsMadeEasy
       end
     end
 
-
     def print_signature(method, sig)
       puts <<-EOF
 #{'Error: '.bold.yellow}
-  #{'You are missing some arguments for this operation:'.red}
+      #{'You are missing some arguments for this operation:'.red}
 
-#{'Correct Usage: '.bold.yellow}
-  #{method.to_s.bold.green} #{sig.join(' ').blue }
+      #{'Correct Usage: '.bold.yellow}
+      #{method.to_s.bold.green} #{sig.join(' ').blue }
 
       EOF
     end
-
 
     def process_flags_format
       if argv.first&.start_with?('--')
@@ -108,45 +105,64 @@ module DnsMadeEasy
       format
     end
 
-
     def configure_authentication
-      if ENV['DNSMADEEASY_API_KEY'] && ENV['DNSMADEEASY_API_SECRET']
-        DnsMadeEasy.configure do |config|
-          config.api_key    = ENV['DNSMADEEASY_API_KEY']
-          config.api_secret = ENV['DNSMADEEASY_API_SECRET']
-        end
+      keys = DnsMadeEasy::Credentials.keys_from_file(
+        filename: ENV['DNSMADEEASY_CREDENTIALS_FILE'] || DnsMadeEasy::Credentials.default_credentials_path(user: ENV['USER'])
+      )
+      if keys
+        DnsMadeEasy.api_key = keys.api_key
+        DnsMadeEasy.api_secret = keys.api_secret
       else
-        DnsMadeEasy.credentials = (ENV['DNSMADEEASY_CREDENTIALS'] || DnsMadeEasy::Credentials.default_credentials_file)
+        raise DnsMadeEasy::APIKeyAndSecretMissingError
       end
-    end
+    rescue DnsMadeEasy::APIKeyAndSecretMissingError => e
+      print_error(e.message)
 
+      puts('You can also set two environment variables: ')
+      puts('  DNSMADEEASY_API_KEY and DNSMADEEASY_API_SECRET')
+
+      exit 123
+    end
 
     def print_usage_message
       puts <<-EOF
 #{'Usage:'.bold.yellow}
-  #{'# Execute an API call:'.dark}
-  #{"dme [ #{SUPPORTED_FORMATS.map { |f| "--#{f}" }.join(' | ')} ] operation [ arg1 arg2 ... ] ".bold.green}
+      #{'# Execute an API call:'.dark}
+      #{"dme [ #{SUPPORTED_FORMATS.map { |f| "--#{f}" }.join(' | ')} ] operation [ arg1 arg2 ... ] ".bold.green}
 
-  #{'# Print suported operations:'.dark}
-  #{'dme op[erations]'.bold.green}
+      #{'# Print suported operations:'.dark}
+      #{'dme op[erations]'.bold.green}
 
       EOF
     end
-
 
     def print_help_message
       print_usage_message
 
       puts <<-EOF
-#{'Credentials:'.bold.yellow}
+#{header 'Credentials'}
   Store your credentials in a YAML file 
-  #{DnsMadeEasy::Credentials.default_credentials_file} as follows:
+  #{DnsMadeEasy::Credentials.default_credentials_path(user: ENV['USER'])} as follows:
 
   #{'credentials:
     api_key: XXXX
     api_secret: YYYY'.bold.magenta}
 
-#{'Examples:'.bold.yellow}
+  Or a multi-account version:
+
+  #{'accounts:
+    - name: production
+      credentials: 
+        api_key: XXXX
+        api_secret: YYYY
+        encryption_key: my_key
+    - name: development
+      default_account: true
+      credentials:
+        api_key: ZZZZ
+        api_secret: WWWW'.bold.magenta}
+
+#{header 'Examples:'}
    #{'dme domain moo.com 
    dme --json domain moo.com 
    dme find_all moo.com A www
@@ -157,29 +173,38 @@ module DnsMadeEasy
       exit 1
     end
 
+    def header(message)
+      "#{message.bold.yellow}"
+    end
 
     def print_supported_operations
       puts <<-EOF
-#{'Actions:'.bold.yellow}      
+#{header 'Actions:'}      
   Checkout the README and RubyDoc for the arguments to each operation,
   which is basically a method on a DnsMadeEasy::Api::Client instance.
   #{'http://www.rubydoc.info/gems/dnsmadeeasy/DnsMadeEasy/Api/Client'.blue.bold.underlined}
 
-#{'Valid Operations Are:'.bold.yellow}
-  #{DnsMadeEasy::Api::Client.public_operations.join("\n  ").green.bold}
+      #{header 'Valid Operations Are:'}
+      #{DnsMadeEasy::Api::Client.public_operations.join("\n  ").green.bold}
 
       EOF
     end
 
-
     def print_formatted(result, format = nil)
       if format
-        puts result.send("to_#{format}".to_sym)
+        if format.to_sym == :json_pretty
+          puts JSON.pretty_generate(result)
+        elsif format.to_sym == :pp
+          require 'pp'
+          pp result
+        else
+          m = "to_#{format}".to_sym
+          puts result.send(m) if result.respond_to?(m)
+        end
       else
         ap(result, indent: 10)
       end
     end
-
 
     # e.backtrack.first looks like this:
     # ..../dnsmadeeasy/lib/dnsmadeeasy/api/client.rb:143:in `create_a_record'

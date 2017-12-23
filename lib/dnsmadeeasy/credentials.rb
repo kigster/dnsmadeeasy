@@ -1,136 +1,98 @@
 require 'yaml'
+require 'dnsmadeeasy'
+require 'hashie/extensions/mash/symbolize_keys'
+require 'sym'
+
+require_relative 'credentials/api_keys'
+require_relative 'credentials/yaml_file'
 
 module DnsMadeEasy
-  # Credentials file should look like this:
+  # A Facade module
   #
-  # Usage:
+  # ## Usage
   #
-  # Example 1. Assuming file ~/.dnsmadeeasy/credentials.yml exists:
+  #         @creds = DnsMadeEasy::Credentials.create(key, secret)
+  #         @creds.api_key #=> ...
+  #         @creds.api_secret # > ...
   #
-  #       DnsMadeEasy::Credentials.exist? #=> true
-  #       creds = DnsMadeEasy::Credentials.load
+  # ### From a single-level YAML file that looks like this:
   #
-  #       creds.api_key #=> key
-  #       creds.api_secret #=> secret
+  # ```yaml
+  # credentials:
+  #    api_key: 12345678-a8f8-4466-ffff-2324aaaa9098
+  #    api_secret: 43009899-abcc-ffcc-eeee-09f809808098
+  # ````
+  #
+  #         @creds = DnsMadeEasy::Credentials.keys_from_file(filename: file)
+  #         @creds.api_key #=> '12345678-a8f8-4466-ffff-2324aaaa9098'
+  #
+  # #### From a default filename ~/.dnsmadeeasy/credentials.yml
+  #
+  #         @creds = DnsMadeEasy::Credentials.keys_from_file
+  #
+  # ### From a multi-account file
+  #
+  # Multi-account YAML file must look like this:
+  #
+  # ```yaml
+  # accounts:
+  #   - name: production
+  #     default_account: true
+  #     credentials:
+  #       api_key: "BAhTOh1TeW06OkRhdGE6OldyYXBwZXJTdHJ1Y3QLOhNlbmNyeXB0ZWRfZGF0YSJV9HFDvF4KUwQLqevf4zvsKO1Yk04kRimAHAfNgoFO0dtRb6OjREyI43uzFV7z63FGjzXcBBG9KDUdj6OowbDw2z86nkTpakkKuIP31HCPZkQ6B2l2IhV2LPWTPSfDruDxi_ToEfbQOhBjaXBoZXJfbmFtZSIQQUVTLTI1Ni1DQkM6CXNhbHQwOgx2ZXJzaW9uaQY6DWNvbXByZXNzVA=="
+  #       api_secret: "BAhTOh1TeW06OkRhdGE6OldyYXBwZXJTdHJ1Y3QLOhNlbmNyeXB0ZWRfZGF0YSJVHE1D3mpTsUseEdm3NWox7xdeQExobVx3-dHnEJoK9XYXawoPvtgroxOhsaYxZtxz_ZeHtSDZwu0eyDVyZ-XDo-vxalo9cQ2FOm05hVQaebo6B2l2IhVosiRfW5FnRK4BxfwPytLcOhBjaXBoZXJfbmFtZSIQQUVTLTI1Ni1DQkM6CXNhbHQwOgx2ZXJzaW9uaQY6DWNvbXByZXNzVA=="
+  #       encryption_key: spec/fixtures/sym.key
+  #   - name: preview
+  #     credentials:
+  #       api_key: "BAhTOh1TeW06OkRhdGE6OldyYXBwZXJTdHJ1Y3QLOhNlbmNyeXB0ZWRfZGF0YSJV9HFDvF4KUwQLqevf4zvsKO1Yk04kRimAHAfNgoFO0dtRb6OjREyI43uzFV7z63FGjzXcBBG9KDUdj6OowbDw2z86nkTpakkKuIP31HCPZkQ6B2l2IhV2LPWTPSfDruDxi_ToEfbQOhBjaXBoZXJfbmFtZSIQQUVTLTI1Ni1DQkM6CXNhbHQwOgx2ZXJzaW9uaQY6DWNvbXByZXNzVA=="
+  #       api_secret: "BAhTOh1TeW06OkRhdGE6OldyYXBwZXJTdHJ1Y3QLOhNlbmNyeXB0ZWRfZGF0YSJVHE1D3mpTsUseEdm3NWox7xdeQExobVx3-dHnEJoK9XYXawoPvtgroxOhsaYxZtxz_ZeHtSDZwu0eyDVyZ-XDo-vxalo9cQ2FOm05hVQaebo6B2l2IhVosiRfW5FnRK4BxfwPytLcOhBjaXBoZXJfbmFtZSIQQUVTLTI1Ni1DQkM6CXNhbHQwOgx2ZXJzaW9uaQY6DWNvbXByZXNzVA=="
+  #       encryption_key:
+  #   - name: staging
+  #     credentials:
+  #       api_key: 12345678-a8f8-4466-ffff-2324aaaa9098
+  #       api_secret: 43009899-abcc-ffcc-eeee-09f809808098
+  #
+  # ```
+  #
+  # Here we have multiple credentials account, one of which can have 'default_account: true'
+  # Each account has a name that's used in `account_name` argument. Finally, if the keys
+  # are encrypted, the key can either be referenced in the YAML file itself (in the above
+  # case it points to a file name — see documentation on the gem Sym about various formats
+  # of the key).
+  #
+  # Note that in this case, encryption key is optional, since the YAML file
+  # actually specifies the key.
+  #
+  #         @creds = DnsMadeEasy::Credentials.keys_from_file(
+  #                            filename: 'spec/fixtures/credentials-multi-account.yml',
+  #                            account_name: 'production')
   #
   #
-  # Example 2. Assuming another file: ~/.private/dnsmadeeasy.yml:
-  #
-  #       DnsMadeEasy::Credentials.exist? #=> false
-  #       DnsMadeEasy::Credentials.exist?('~/.private/dnsmadeeasy.yml') #=> true
-  #
-  #       creds = DnsMadeEasy::Credentials.load('~/.private/dnsmadeeasy.yml')
-  #       creds.api_key #=> key
-  #       creds.api_secret #=> secret
-  #
-  #
-  class Credentials < Hash
-    #DEFAULT_CREDENTIALS_FILE = File.expand_path('~/.dnsmadeeasy/credentials.yml').freeze
+  # )
 
-    class CredentialsFileNotFound < StandardError
-    end
+  module Credentials
 
-    #
-    # Class Methods
-    #
-    #
     class << self
-      # Default credential file that's used if no argument is passed.
-      attr_accessor :default_credentials_file
 
-      def exist?(file = default_credentials_file)
-        File.exist?(file)
+      # Create a new instance of Credentials::ApiKeys
+      def create(key, secret, encryption_key = nil)
+        ApiKeys.new(key, secret, encryption_key)
       end
 
-      def load(file = default_credentials_file)
-        validate_argument(file)
+      def keys_from_file(filename: default_credentials_path,
+                         account_name: nil,
+                         encryption_key: nil)
 
-        new.tap do |local|
-          local.merge!(parse_file(file)) if exist?(file)
-          local.symbolize!
-        end
+        YamlFile.new(filename: filename).keys(account_name:   account_name,
+                                    encryption_key: encryption_key)
       end
 
-
-      private
-
-      def validate_argument(file)
-        unless file && File.exist?(file)
-          raise CredentialsFileNotFound, "File #{file} could not be found"
-        end
-      end
-
-
-      def parse_file(file)
-        YAML.load(read_file(file))
-      end
-
-
-      def read_file(file)
-        File.read(file)
+      # @return String path to the default credentials file.
+      def default_credentials_path(user: nil)
+        user ?
+          File.expand_path(Dir.home(user) + '/.dnsmadeeasy/credentials.yml').freeze :
+          File.expand_path('~/.dnsmadeeasy/credentials.yml').freeze
       end
     end
-
-    # Set the default
-    self.default_credentials_file ||= File.expand_path('~/.dnsmadeeasy/credentials.yml').freeze
-
-    # Instance Methods
-    # NOTE: we are subclassing Hash, which isn't awesome, but gets the job done.
-
-    def symbolize(param_hash = self)
-      Hash.new.tap { |hash|
-        param_hash.each_pair do |key, key_value|
-          value = recurse_if_needed(key_value)
-          symbolize_key(hash, key, value)
-        end
-      }
-    end
-
-    public
-
-    def valid?
-      api_key && api_secret
-    end
-
-
-    def symbolize!
-      hash = symbolize(self)
-      clear
-      merge!(hash)
-    end
-
-
-    def api_key
-      credentials && credentials[:api_key]
-    end
-
-
-    def api_secret
-      credentials && credentials[:api_secret]
-    end
-
-
-    private
-
-    def symbolize_key(hash, key, value)
-      case key
-        when String, Symbol
-          hash[key.to_sym] = value
-        else
-          hash[key.to_s.to_sym] = value
-      end
-    end
-
-
-    def recurse_if_needed(key_value)
-      key_value.is_a?(Hash) ? symbolize(key_value) : key_value
-    end
-
-
-    def credentials
-      self[:credentials] || {}
-    end
-
-
   end
 end

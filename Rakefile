@@ -24,3 +24,11 @@ end
 RSpec::Core::RakeTask.new(:spec)
 
 task :default => :spec
+task :gem => :install do
+  gem = `ls -1 *.gemspec | sed 's/\.gemspec//g'`.chomp
+  puts "gem is #{gem}"
+  puts `gem uninstall -ax #{gem}`.chomp
+  file=`ls -1 pkg`.chomp
+  puts `gem install pkg/#{file}`
+end
+
