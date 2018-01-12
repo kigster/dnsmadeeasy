@@ -38,7 +38,7 @@ module DnsMadeEasy
           when Hashie::Mash
             print_formatted(result.to_hash, format)
           when Array
-            print_formatted(result.map(&:to_hash), format)
+            print_formatted(result, format)
           else
             print_formatted(result, format)
         end
