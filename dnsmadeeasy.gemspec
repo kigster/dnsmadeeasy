@@ -6,9 +6,11 @@ require 'dnsmadeeasy/version'
 
 DnsMadeEasy::DESCRIPTION = <<-eof
 This is a fully-featured DNS API client for DnsMadeEasy.com, that includes
-both the Ruby API and (soon to follow – a CLI). This gem used to be called
-dnsmadeeasy-rest-api, but the original author Phil Cohen kindly passed on
-the RubyGems namespace, and now you can install just plane simple "dnsmadeeasy".
+both the Ruby API and a corresponding CLI interface. This gem is based on the 
+"dnsmadeeasy-rest-api". We also wish to thank the original author Phil Cohen who 
+kindly passed on the RubyGems namespace, and now you can install just plain simple
+install "dnsmadeeasy" gem. The gem additionally supports storing credentials in the
+~/.dnsmadeeasy/credentials.yml file, supports multiple accounts, encryption, and more.
 eof
 
 Gem::Specification.new do |spec|

@@ -18,7 +18,7 @@ module DnsMadeEasy
     context '.keys_from_file' do
       context 'simple file' do
         let(:file) { 'spec/fixtures/credentials.yml' }
-        subject { described_class.keys_from_file(filename: file) }
+        subject { described_class.keys_from_file(file: file) }
 
         it { is_expected.to be_kind_of ::DnsMadeEasy::Credentials::ApiKeys }
         it { is_expected.to_not be_nil }
@@ -29,7 +29,7 @@ module DnsMadeEasy
 
       context 'multi-account file' do
         let(:file) { 'spec/fixtures/credentials-multi-account.yml' }
-        subject { described_class.keys_from_file(filename: file, account_name: 'production') }
+        subject { described_class.keys_from_file(file: file, account: 'production') }
 
         it { is_expected.to be_kind_of ::DnsMadeEasy::Credentials::ApiKeys }
         it { is_expected.to_not be_nil }

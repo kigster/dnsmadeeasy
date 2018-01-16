@@ -15,7 +15,3 @@ module DME
     end
   end
 end
-
-
-
-

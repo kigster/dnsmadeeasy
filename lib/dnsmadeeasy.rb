@@ -3,6 +3,7 @@ module DnsMadeEasy
   API_BASE_URL_SANDBOX    = 'https://sandboxapi.dnsmadeeasy.com/V2.0'
 end
 
+require 'dnsmadeeasy/version'
 require 'dnsmadeeasy/credentials'
 require 'dnsmadeeasy/api/client'
 
@@ -31,12 +32,12 @@ module DnsMadeEasy
     end
 
     def configure_from_file(file = nil,
-                            account_name = nil,
+                            account = nil,
                             encryption_key = nil)
 
       credentials = ::DnsMadeEasy::Credentials.keys_from_file(
-        filename:       file || ::DnsMadeEasy::Credentials.default_credentials_path(user: ENV['USER']),
-        account_name:   account_name,
+        file:           file || ::DnsMadeEasy::Credentials.default_credentials_path(user: ENV['USER']),
+        account:        account,
         encryption_key: encryption_key)
       if credentials
         configure do |config|
@@ -46,6 +47,15 @@ module DnsMadeEasy
       else
         raise APIKeyAndSecretMissingError, "Unable to load valid api keys from #{file}!"
       end
+    end
+
+    def credentials_from_file(file: DnsMadeEasy::Credentials.default_credentials_path,
+                              account: nil,
+                              encryption_key: nil)
+
+      DnsMadeEasy::Credentials.keys_from_file file:           file,
+                                              account:        account,
+                                              encryption_key: encryption_key
     end
 
     def api_key=(value)

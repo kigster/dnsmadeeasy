@@ -10,24 +10,27 @@ module DnsMadeEasy
     class YamlFile
       attr_accessor :filename, :account, :mash
 
-      def initialize(filename: default_credentials_path)
-        self.filename = filename
+      def initialize(file: default_credentials_path)
+        self.filename = file
         parse! if exist?
       end
 
-      def keys(account_name: nil, encryption_key: nil)
+      def keys(account: nil, encryption_key: nil)
         return nil unless exist?
         return nil if mash.nil?
 
         creds = if mash.accounts.is_a?(Array)
-                  account = if account_name
-                              mash.accounts.find { |a| a.name == account_name.to_s }
+                  account = if account
+                              mash.accounts.find { |a| a.name == account.to_s }
+                            elsif
+                              mash.accounts.size == 1
+                              mash.accounts.first
                             else
                               mash.accounts.find { |a| a.default_account }
                             end
 
                   raise DnsMadeEasy::APIKeyAndSecretMissingError,
-                        (account_name ? "account #{account_name} was not found" : 'default account does not exist') unless account
+                        (account ? "account #{account} was not found" : 'default account does not exist') unless account
 
                   raise DnsMadeEasy::InvalidCredentialsFormatError,
                         'Expected account entry to have "credentials" key' unless account.credentials

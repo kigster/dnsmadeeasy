@@ -37,18 +37,7 @@ Once you have the key and the secret, you have several choices:
 
      DnsMadeEasy.domains.data.first.name #=> 'moo.gamespot.com'     
      ```
-
-     Once you configure the keys, you can also use the shortcut module to save you some typing:
-     
-     ```ruby
-     require 'dnsmadeeasy/dme'
-     DME.domains.data.first.name #=> 'moo.gamespot.com'
-     ```
-     
-     This has the advantage of being much shorter, but might conflict with existing modules in your Ruby VM. 
-     In this case, just do not require `dnsmadeeasy/dme` and only require `dnsmadeeasy`, and you'll be fine.
-     Otherwise, using `DME` is identical to using `DnsMadeEasy`, assuming you required `dnsmadeeasy/dme` file.
-
+  
   3. Configuring API keys as above is easy, and can be done using environment variables. Alternatively, it may be convenient to store credentials in a YAML file. 
 
      * If filename is not specified, there is default location where this file is searched, which is `~/.dnsmadeeasy/credentials.yml`.
@@ -85,16 +74,45 @@ Once you have the key and the secret, you have several choices:
      
      ```ruby
      require 'dnsmadeeasy'
-     DnsMadeEasy.configure_from_file(file, account_name = nil, encryption_key = nil)
+     DnsMadeEasy.configure_from_file(file, account = nil, encryption_key = nil)
 
      # for example:
      DnsMadeEasy.configure_from_file('config/dme.yaml', 'production')
      DnsMadeEasy.domains #=> [ ... ]
 
      # or with encrypted key passed as an argument to decrypt YAML values:
-     DnsMadeEasy.configure_from_file('config/dme.yaml', 'production', ENV['PRODUCTION_KEY'])
+     DnsMadeEasy.configure_from_file(
+         'config/dme.yaml', 
+         'production', 
+         ENV['PRODUCTION_KEY'])
      ```
    
+  3. Finally, you can use `DME.credentials_from_file` method that, unlike the method above, uses hash arguments:
+  
+     ```ruby
+     @creds = DnsMadeEasy.credentials_from_file(file: 'my-creds.yml', 
+                                             account: 'production', 
+                                      encryption_key: 'MY_KEY')
+     @creds.api_key    # => ...
+     @creds.api_secret # => ...
+     ```     
+
+     Method above simply returns the credentials instance, but does not "save" it as the default credentials like `configure_from_file`. Therefore, if you need to access multiple accounts at the same time, this method will help you maintain multiple credentials at the same time.
+
+___
+
+Once you configure the keys, you can also use the shortcut module to save you some typing:
+
+```ruby
+require 'dnsmadeeasy/dme'
+DME.domains.data.first.name #=> 'moo.gamespot.com'
+```
+
+This has the advantage of being much shorter, but might conflict with existing modules in your Ruby VM. 
+In this case, just do not require `dnsmadeeasy/dme` and only require `dnsmadeeasy`, and you'll be fine.
+Otherwise, using `DME` is identical to using `DnsMadeEasy`, assuming you required `dnsmadeeasy/dme` file.
+   
+
 ### Which Namespace to Use? What is `DME` versus `DnsMadeEasy`?
 
 Since `DnsMadeEasy` is a bit of a mouthful, we decided to offer (in addition to the standard `DnsMadeEasy` namespace) the abbreviated module `DME` that simply forwards all messages to the module `DnsMadeEasy`. If in your Ruby VM there is no conflicting top-level class `DME`, then you can `require 'dnsmadeeasy/dme'` to get all of the DnsMadeEasy client library functionality without having to type the full name once. You can even do `require 'dme'`.

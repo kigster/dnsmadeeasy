@@ -17,15 +17,15 @@ module DnsMadeEasy
                   :api_secret,
                   :encryption_key,
                   :default,
-                  :account_name
+                  :account
 
       include Sym
 
-      def initialize(key, secret, encryption_key = nil, default: false, account_name: nil)
+      def initialize(key, secret, encryption_key = nil, default: false, account: nil)
         raise InvalidCredentialKeys, "Key and Secret can not be nil" if key.nil? || secret.nil?
 
         @default      = default
-        @account_name = account_name
+        @account = account
 
         if !valid?(key, secret) && encryption_key
           @encryption_key = sym_resolve(encryption_key)

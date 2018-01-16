@@ -23,7 +23,7 @@ module DnsMadeEasy
   #    api_secret: 43009899-abcc-ffcc-eeee-09f809808098
   # ````
   #
-  #         @creds = DnsMadeEasy::Credentials.keys_from_file(filename: file)
+  #         @creds = DnsMadeEasy::Credentials.keys_from_file(file: file)
   #         @creds.api_key #=> '12345678-a8f8-4466-ffff-2324aaaa9098'
   #
   # #### From a default filename ~/.dnsmadeeasy/credentials.yml
@@ -55,7 +55,7 @@ module DnsMadeEasy
   # ```
   #
   # Here we have multiple credentials account, one of which can have 'default_account: true'
-  # Each account has a name that's used in `account_name` argument. Finally, if the keys
+  # Each account has a name that's used in `account` argument. Finally, if the keys
   # are encrypted, the key can either be referenced in the YAML file itself (in the above
   # case it points to a file name — see documentation on the gem Sym about various formats
   # of the key).
@@ -64,8 +64,8 @@ module DnsMadeEasy
   # actually specifies the key.
   #
   #         @creds = DnsMadeEasy::Credentials.keys_from_file(
-  #                            filename: 'spec/fixtures/credentials-multi-account.yml',
-  #                            account_name: 'production')
+  #                            file: 'spec/fixtures/credentials-multi-account.yml',
+  #                            account: 'production')
   #
   #
   # )
@@ -79,12 +79,12 @@ module DnsMadeEasy
         ApiKeys.new(key, secret, encryption_key)
       end
 
-      def keys_from_file(filename: default_credentials_path,
-                         account_name: nil,
+      def keys_from_file(file: default_credentials_path,
+                         account: nil,
                          encryption_key: nil)
 
-        YamlFile.new(filename: filename).keys(account_name:   account_name,
-                                    encryption_key: encryption_key)
+        YamlFile.new(file: file).keys(account:        account,
+                                      encryption_key: encryption_key)
       end
 
       # @return String path to the default credentials file.

@@ -107,7 +107,7 @@ module DnsMadeEasy
 
     def configure_authentication
       keys = DnsMadeEasy::Credentials.keys_from_file(
-        filename: ENV['DNSMADEEASY_CREDENTIALS_FILE'] || DnsMadeEasy::Credentials.default_credentials_path(user: ENV['USER'])
+        file: ENV['DNSMADEEASY_CREDENTIALS_FILE'] || DnsMadeEasy::Credentials.default_credentials_path(user: ENV['USER'])
       )
       if keys
         DnsMadeEasy.api_key = keys.api_key
