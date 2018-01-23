@@ -4,7 +4,7 @@ require 'colored2'
 require 'awesome_print'
 require 'dnsmadeeasy'
 require 'dnsmadeeasy/api/client'
-
+require 'etc'
 
 module DnsMadeEasy
   class Runner
@@ -27,24 +27,20 @@ module DnsMadeEasy
       end
     end
 
-    def puts(*args)
-      super(*args)
-    end
-
     private
 
     def call_through_client(method)
       begin
         result = DnsMadeEasy.client.send(method, *argv)
         case result
-          when NilClass
-            puts 'No records returned.'
-          when Hashie::Mash
-            print_formatted(result.to_hash, format)
-          when Array
-            print_formatted(result, format)
-          else
-            print_formatted(result, format)
+        when NilClass
+          puts 'No records returned.'
+        when Hashie::Mash
+          print_formatted(result.to_hash, format)
+        when Array
+          print_formatted(result, format)
+        else
+          print_formatted(result, format)
         end
         0
       rescue ArgumentError => e
@@ -90,7 +86,7 @@ module DnsMadeEasy
     end
 
     def process_flags_format
-      if argv.first&.start_with?('--')
+      if argv.first && argv.first.start_with?('--')
         format = argv.shift.gsub(/^--/, '')
         if format =~ /^h(elp)?$/i
           print_help_message
@@ -108,22 +104,24 @@ module DnsMadeEasy
     end
 
     def configure_authentication
-      keys = DnsMadeEasy::Credentials.keys_from_file(
-        file: ENV['DNSMADEEASY_CREDENTIALS_FILE'] || DnsMadeEasy::Credentials.default_credentials_path(user: ENV['USER'])
-      )
-      if keys
-        DnsMadeEasy.api_key = keys.api_key
-        DnsMadeEasy.api_secret = keys.api_secret
-      else
-        raise DnsMadeEasy::APIKeyAndSecretMissingError
+      credentials_file = ENV['DNSMADEEASY_CREDENTIALS_FILE'] || DnsMadeEasy::Credentials.default_credentials_path(user: Etc.getlogin)
+      if ENV['DNSMADEEASY_API_KEY'] && ENV['DNSMADEEASY_API_SECRET']
+        DnsMadeEasy.api_key = ENV['DNSMADEEASY_API_KEY']
+        DnsMadeEasy.api_secret = ENV['DNSMADEEASY_API_SECRET']
+      elsif credentials_file && ::File.exist?(credentials_file)
+        keys = DnsMadeEasy::Credentials.keys_from_file(file: credentials_file)
+        if keys
+          DnsMadeEasy.api_key = keys.api_key
+          DnsMadeEasy.api_secret = keys.api_secret
+        end
       end
-    rescue DnsMadeEasy::APIKeyAndSecretMissingError => e
-      print_error(e.message)
 
-      puts('You can also set two environment variables: ')
-      puts('  DNSMADEEASY_API_KEY and DNSMADEEASY_API_SECRET')
-
-      exit 123
+      if DnsMadeEasy.api_key.nil?
+        print_error('API Key/Secret was not detected or read from file')
+        puts('You can also set two environment variables: ')
+        puts('  DNSMADEEASY_API_KEY and DNSMADEEASY_API_SECRET')
+        exit 123
+      end
     end
 
     def print_usage_message
@@ -224,6 +222,11 @@ module DnsMadeEasy
       []
     rescue
       []
+    end
+
+
+    def puts(*args)
+      super(*args)
     end
 
   end

@@ -24,6 +24,10 @@ RSpec.describe DnsMadeEasy::Runner do
   subject { ::DnsMadeEasy::Output.lines }
 
   before do
+    allow(ENV).to receive(:[]).with('DNSMADEEASY_API_KEY').and_return('123')
+    allow(ENV).to receive(:[]).with('DNSMADEEASY_API_SECRET').and_return('123')
+    allow(ENV).to receive(:[]).with('DNSMADEEASY_CREDENTIALS_FILE').and_call_original
+    allow(ENV).to receive(:[]).with('USER').and_call_original
     ::DnsMadeEasy::Runner.send(:define_method, :puts) do |*args|
       ::DnsMadeEasy::Output.lines << args
     end

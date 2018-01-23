@@ -39,38 +39,38 @@ Once you have the key and the secret, you have several choices:
      ```
   
   3. Configuring API keys as above is easy, and can be done using environment variables. Alternatively, it may be convenient to store credentials in a YAML file. 
-
-     * If filename is not specified, there is default location where this file is searched, which is `~/.dnsmadeeasy/credentials.yml`.
-     * If filename is provided, it will be read, and must conform to the following format:
+ 
+    * If filename is not specified, there is default location where this file is searched, which is `~/.dnsmadeeasy/credentials.yml`.
+    * If filename is provided, it will be read, and must conform to the following format:
    
-     **Simple Credentials Format**
+ **Simple Credentials Format**
 
-      ```yaml
-      # file: ~/.dnsmadeeasy/credentials.yml
-      credentials:
-          api_key: 2062259f-f666b17-b1fa3b48-042ad4030
-          api_secret: 2265bc3-e31ead-95b286312e-c215b6a0
-      ```
+  ```yaml
+  # file: ~/.dnsmadeeasy/credentials.yml
+  credentials:
+      api_key: 2062259f-f666b17-b1fa3b48-042ad4030
+      api_secret: 2265bc3-e31ead-95b286312e-c215b6a0
+  ```
 
-     **Multi-Account Credentials Format**
+  **Multi-Account Credentials Format**
      
-     Below you see two accounts, with production key and secret being encrypted. See [further below](#encryption) about encrypting your key and secrets.
+  Below you see two accounts, with production key and secret being encrypted. See [further below](#encryption) about encrypting your key and secrets.
 
-      ```yaml
-      accounts:
-        - name: development
-          default_account: true
-          credentials:
-            api_key: 12345678-a8f8-4466-ffff-2324aaaa9098
-            api_secret: 43009899-abcc-ffcc-eeee-09f809808098
-        - name: production
-          credentials:
-            api_key: "BAhTOh1TeW06OkRhdGE6OldyYXBwZXJT............"
-            api_secret: "BAhTOh1TeW06OkRhdGE6OldyYXBwZ............"
-            encryption_key: spec/fixtures/sym.key
-      ```
+  ```yaml
+  accounts:
+    - name: development
+      default_account: true
+      credentials:
+        api_key: 12345678-a8f8-4466-ffff-2324aaaa9098
+        api_secret: 43009899-abcc-ffcc-eeee-09f809808098
+    - name: production
+      credentials:
+        api_key: "BAhTOh1TeW06OkRhdGE6OldyYXBwZXJT............"
+        api_secret: "BAhTOh1TeW06OkRhdGE6OldyYXBwZ............"
+        encryption_key: spec/fixtures/sym.key
+  ```
 
-     You can use the following method to access both simple and multi-account YAML configurations:
+ You can use the following method to access both simple and multi-account YAML configurations:
      
      ```ruby
      require 'dnsmadeeasy'
