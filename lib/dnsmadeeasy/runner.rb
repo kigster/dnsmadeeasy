@@ -27,6 +27,10 @@ module DnsMadeEasy
       end
     end
 
+    def puts(*args)
+      super(*args)
+    end
+
     private
 
     def call_through_client(method)
@@ -50,8 +54,6 @@ module DnsMadeEasy
           print_error('Action', "#{method.to_s.bold.yellow}", 'has generated an error'.red, exception: e)
         1
       rescue NoMethodError => e
-
-        puts e.backtrace.reverse.join("\n").red
 
         print_error('Action', "#{method.to_s.bold.yellow}", 'is not valid.'.red)
         puts 'HINT: try running ' + 'dme operations'.bold.green + ' to see the list of valid operations.'
@@ -98,7 +100,7 @@ module DnsMadeEasy
           puts "Supported values are: #{SUPPORTED_FORMATS.join(', ')}"
           exit 1
         end
-      elsif argv.first =~ /^ope?r?a?t?i?o?n?$/i
+      elsif argv.first =~ /^op(erations)?$/i
         print_supported_operations
         exit 0
       end
@@ -141,7 +143,7 @@ module DnsMadeEasy
 
       puts <<-EOF
 #{header 'Credentials'}
-  Store your credentials in a YAML file 
+  Store your credentials in a YAML file
   #{DnsMadeEasy::Credentials.default_credentials_path(user: ENV['USER'])} as follows:
 
   #{'credentials:
@@ -152,7 +154,7 @@ module DnsMadeEasy
 
   #{'accounts:
     - name: production
-      credentials: 
+      credentials:
         api_key: XXXX
         api_secret: YYYY
         encryption_key: my_key
@@ -163,8 +165,8 @@ module DnsMadeEasy
         api_secret: WWWW'.bold.magenta}
 
 #{header 'Examples:'}
-   #{'dme domain moo.com 
-   dme --json domain moo.com 
+   #{'dme domain moo.com
+   dme --json domain moo.com
    dme find_all moo.com A www
    dme find_first moo.com CNAME vpn-west
    dme --yaml find_first moo.com CNAME vpn-west'.green}
@@ -179,13 +181,13 @@ module DnsMadeEasy
 
     def print_supported_operations
       puts <<-EOF
-#{header 'Actions:'}      
+#{header 'Actions:'}
   Checkout the README and RubyDoc for the arguments to each operation,
   which is basically a method on a DnsMadeEasy::Api::Client instance.
   #{'http://www.rubydoc.info/gems/dnsmadeeasy/DnsMadeEasy/Api/Client'.blue.bold.underlined}
 
-      #{header 'Valid Operations Are:'}
-      #{DnsMadeEasy::Api::Client.public_operations.join("\n  ").green.bold}
+#{header 'Valid Operations Are:'}
+  #{DnsMadeEasy::Api::Client.public_operations.join("\n  ").green.bold}
 
       EOF
     end
@@ -223,8 +225,6 @@ module DnsMadeEasy
     rescue
       []
     end
+
   end
 end
-
-
-
