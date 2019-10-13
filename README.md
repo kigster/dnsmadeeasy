@@ -72,7 +72,7 @@ Once you have the key and the secret, you have several choices:
 
  You can use the following method to access both simple and multi-account YAML configurations:
      
-     ```ruby
+  ```ruby
      require 'dnsmadeeasy'
      DnsMadeEasy.configure_from_file(file, account = nil, encryption_key = nil)
 
@@ -85,17 +85,17 @@ Once you have the key and the secret, you have several choices:
          'config/dme.yaml', 
          'production', 
          ENV['PRODUCTION_KEY'])
-     ```
+   ```
    
   3. Finally, you can use `DME.credentials_from_file` method that, unlike the method above, uses hash arguments:
   
-     ```ruby
+   ```ruby
      @creds = DnsMadeEasy.credentials_from_file(file: 'my-creds.yml', 
                                              account: 'production', 
                                       encryption_key: 'MY_KEY')
      @creds.api_key    # => ...
      @creds.api_secret # => ...
-     ```     
+   ```     
 
      Method above simply returns the credentials instance, but does not "save" it as the default credentials like `configure_from_file`. Therefore, if you need to access multiple accounts at the same time, this method will help you maintain multiple credentials at the same time.
 
