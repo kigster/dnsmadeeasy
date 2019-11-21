@@ -250,6 +250,21 @@ Here is the complete of all methods supported by the `DnsMadeEasy::Api::Client`:
 * `find_first`
 * `find_record_ids`
 
+#### Secondary Domains
+* `secondary_domain`
+* `secondary_domains`
+* `get_id_by_secondary_domain`
+* `create_secondary_domain`
+* `create_secondary_domains`
+* `update_secondary_domains`
+* `delete_secondary_domain`
+
+#### Secondary IpSets
+* `secondary_ip_set`
+* `secondary_ip_sets`
+* `create_secondary_ip_set`
+* `update_secondary_ip_set`
+* `delete_secondary_ip_set`
 
 <a name="encryption"></a>
 
@@ -337,6 +352,9 @@ Valid Operations Are:
   create_ns_record
   create_ptr_record
   create_record
+  create_secondary_domain
+  create_secondary_domains
+  create_secondary_ip_set
   create_spf_record
   create_srv_record
   create_txt_record
@@ -344,15 +362,24 @@ Valid Operations Are:
   delete_domain
   delete_record
   delete_records
+  delete_secondary_domain
+  delete_secondary_ip_set
   domain
   domains
   find_all
   find_first
   find_record_ids
   get_id_by_domain
+  get_id_by_secondary_domain
   records_for
+  secondary_domain
+  secondary_domains
+  secondary_ip_set
+  secondary_ip_sets
   update_record
   update_records
+  update_secondary_domains
+  update_secondary_ip_set
 ```
 
 For example:
@@ -417,6 +444,81 @@ To delete a domain:
 
 ```ruby
 DME.delete_domain        ('test.io')
+```
+
+### Managing Secondary Domains
+
+To retrieve all secondary domains:
+```ruby
+DME.secondary_domains
+```
+
+To retrieve secondary domain by id:
+
+```ruby
+DME.secondary_domain(domain_id)
+```
+
+To retrieve the id of a domain by the secondary domain name:
+
+```ruby
+DME.get_id_by_secondary_domain('test.io')
+```
+
+To create a secondary domain:
+
+```ruby
+# IP_SET_ID is id of ip_set you want to associate domain with
+DME.create_secondary_domain('test.io', IP_SET_ID)
+
+# Multiple domains can be created by:
+DME.create_secondary_domains(%w[test.io moo.re], IP_SET_ID)
+```
+
+To update a secondary domain:
+
+```ruby
+# IP_SET_ID is id of ip_set you want to associate 
+# DOMAIN_ID is id of domain 
+DME.update_secondary_domains([DOMAIN_ID], IP_SET_ID)
+```
+
+To delete a secondary domain:
+
+```ruby
+DME.delete_secondary_domain('test.io')
+```
+
+### Managing Secondary IpSets
+
+To retrieve all secondary IpSets:
+```ruby
+DME.secondary_ip_sets
+```
+
+To retrieve single ipSet:
+
+```ruby
+DME.secondary_ip_set(IP_SET_ID)
+```
+
+To create an ipSet:
+
+```ruby
+# IP_LIST is list of ips to be associated with this ip_set, like %w[8.8.8.8, 1.1.1.1]
+DME.create_secondary_ip_set('ip-set-name', IP_LIST)
+```
+
+To update an ipSet:
+
+```ruby
+DME.update_secondary_ip_set(IP_SET_ID, 'ip-list-name', IP_LIST)
+```
+
+To delete an ipSet:
+
+```ruby
+DME.delete_secondary_ip_set(IP_SET_ID)
 ```
 
 ### Managing Records

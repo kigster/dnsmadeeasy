@@ -220,6 +220,81 @@ module DnsMadeEasy
         put "/dns/managed/#{get_id_by_domain(domain)}/records/updateMulti/", body
       end
 
+      # -----------------------------------
+      # ------- Secondary Domains ---------
+      # -----------------------------------
+
+      def secondary_domains
+        get '/dns/secondary'
+      end
+
+      def secondary_domain(domain_id)
+        get "/dns/secondary/#{domain_id}"
+      end
+
+      def create_secondary_domains(domain_names, ip_set_id)
+        body = { names: domain_names, ipSetId: ip_set_id }
+        post '/dns/secondary', body
+      end
+
+
+      def create_secondary_domain(domain_name, ip_set_id)
+        domains = [domain_name]
+        create_secondary_domains(domains, ip_set_id)
+      end
+
+
+      def update_secondary_domains(domain_ids, ip_set_id)
+        body = { ids: domain_ids, ipSetId: ip_set_id }
+        put '/dns/secondary', body
+      end
+
+
+      def get_id_by_secondary_domain(domain_name)
+        domain_data = secondary_domains['data'].find do |domain|
+          domain['name'] == domain_name
+        end
+        raise NoDomainError, "#{domain_name} does not exist" unless domain_data
+
+        domain_data['id']
+      end
+
+
+      def delete_secondary_domain(domain_name)
+        delete "/dns/secondary/#{get_id_by_secondary_domain(domain_name)}"
+      end
+
+
+      # -----------------------------------
+      # ------- Secondary IpSet -----------
+      # -----------------------------------
+
+      def secondary_ip_sets
+        get '/dns/secondary/ipSet'
+      end
+
+
+      def secondary_ip_set(ip_set_id)
+        get "/dns/secondary/ipSet/#{ip_set_id}"
+      end
+
+
+      def create_secondary_ip_set(name, ips)
+        body = { name: name, ips: ips}
+        post '/dns/secondary/ipSet', body
+      end
+
+
+      def update_secondary_ip_set(ip_set_id, name, ips)
+        body = { name: name, id: ip_set_id, ips: ips }
+        put "/dns/secondary/ipSet/#{ip_set_id}", body
+      end
+
+
+      def delete_secondary_ip_set(ip_set_id)
+        delete "/dns/secondary/ipSet/#{ip_set_id}"
+      end
+
 
       private
 

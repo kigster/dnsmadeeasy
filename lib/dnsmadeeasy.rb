@@ -22,6 +22,8 @@ module DnsMadeEasy
   end
   class NoSuchAccountError < Error;
   end
+  class NoDomainError < Error;
+  end
 
   class << self
     attr_accessor :default_api_key,
