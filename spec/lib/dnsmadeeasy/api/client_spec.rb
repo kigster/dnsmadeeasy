@@ -375,6 +375,178 @@ RSpec.describe DnsMadeEasy::Api::Client do
     end
   end
 
+  describe '#secondary_domains' do
+    let(:response) { '{}' }
+
+    it 'returns all the domains' do
+      stub_request(:get, api_domain + '/dns/secondary')
+        .with(headers: request_headers)
+        .to_return(status: 200, body: response, headers: {})
+
+      expect(subject.secondary_domains).to eq({})
+    end
+  end
+
+  describe '#secondary_domain' do
+    let(:response) { '{}' }
+    let(:domain_id) { 123 }
+
+    it 'returns the domain' do
+      stub_request(:get, api_domain + "/dns/secondary/#{domain_id}" )
+        .with(headers: request_headers)
+        .to_return(status: 200, body: response, headers: {})
+
+      expect(subject.secondary_domain(domain_id)).to eq({})
+    end
+  end
+
+  describe '#create_secondary_domains' do
+    let(:response) { '{}' }
+    let(:ip_set_id) { 123 }
+
+    it 'creates the domains' do
+      stub_request(:post, api_domain + '/dns/secondary')
+        .with(headers: request_headers, body: { names: [user_domain], ipSetId: ip_set_id }.to_json)
+        .to_return(status: 200, body: response, headers: {})
+
+      expect(subject.create_secondary_domains([user_domain], ip_set_id)).to eq({})
+    end
+  end
+
+  describe '#create_secondary_domain' do
+    let(:ip_set_id) { 123 }
+
+    it 'calls create_secondary_domains with one domain' do
+      expect(subject).to receive(:create_secondary_domains).with([user_domain], ip_set_id)
+      subject.create_secondary_domain(user_domain, ip_set_id)
+    end
+  end
+
+  describe '#update_secondary_domains' do
+    let(:response) { '{}' }
+    let(:ip_set_id) { 123 }
+    let(:domain_ids) { [1, 2, 3] }
+
+    it 'updates domains' do
+      stub_request(:put, api_domain + '/dns/secondary')
+        .with(headers: request_headers, body: { ids: domain_ids, ipSetId: ip_set_id }.to_json)
+        .to_return(status: 200, body: response, headers: {})
+
+      expect(subject.update_secondary_domains(domain_ids, ip_set_id)).to eq({})
+    end
+  end
+
+  describe '#get_id_by_secondary_domain' do
+    let(:response) {
+      {
+        data: [
+          {
+            ipSetId: 11341,
+            name: user_domain,
+            id: 123
+          },
+        ],
+      }.to_json
+    }
+
+    before do
+      expect(subject).to receive(:secondary_domains).and_return(JSON.parse(response))
+    end
+
+    it 'gets id of domain' do
+      expect(subject.get_id_by_secondary_domain(user_domain)).to eq(123)
+    end
+
+    it 'raises if no domain is found' do
+      expect {
+        subject.get_id_by_secondary_domain('non-existing-domain')
+      }.to raise_error(DnsMadeEasy::NoDomainError)
+    end
+  end
+
+  describe '#delete_secondary_domain' do
+    let(:response) { '{}' }
+
+    before do
+      expect(subject).to receive(:get_id_by_secondary_domain).with(user_domain).and_return(123)
+    end
+
+    it 'deletes the domain' do
+      stub_request(:delete, api_domain + '/dns/secondary/123')
+        .with(headers: request_headers)
+        .to_return(status: 200, body: response, headers: {})
+
+      expect(subject.delete_secondary_domain(user_domain)).to eq({})
+    end
+  end
+
+  describe '#secondary_ip_sets' do
+    let(:response) { '{}' }
+
+    it 'returns all the ip_sets' do
+      stub_request(:get, api_domain + '/dns/secondary/ipSet')
+        .with(headers: request_headers)
+        .to_return(status: 200, body: response, headers: {})
+
+      expect(subject.secondary_ip_sets).to eq({})
+    end
+  end
+
+  describe '#secondary_ip_set' do
+    let(:response) { '{}' }
+    let(:ip_set_id) { 123 }
+
+    it 'returns ip_set' do
+      stub_request(:get, api_domain + "/dns/secondary/ipSet/#{ip_set_id}" )
+        .with(headers: request_headers)
+        .to_return(status: 200, body: response, headers: {})
+
+      expect(subject.secondary_ip_set(ip_set_id)).to eq({})
+    end
+  end
+
+  describe '#create_secondary_ip_set' do
+    let(:response) { '{}' }
+    let(:ips) { %w[1.2.3.4 5.6.7.8] }
+    let(:name) { 'ip-set-name' }
+
+    it 'creates ip_set' do
+      stub_request(:post, api_domain + "/dns/secondary/ipSet")
+        .with(headers: request_headers, body: { name: name, ips: ips }.to_json)
+        .to_return(status: 200, body: response, headers: {})
+
+      expect(subject.create_secondary_ip_set(name, ips)).to eq({})
+    end
+  end
+
+  describe '#update_secondary_ip_set' do
+    let(:response) { '{}' }
+    let(:ip_set_id) { 123 }
+    let(:ips) { %w[1.2.3.4 5.6.7.8] }
+    let(:name) { 'ip-set-name' }
+
+    it 'updates ip_set' do
+      stub_request(:put, api_domain + "/dns/secondary/ipSet/#{ip_set_id}")
+        .with(headers: request_headers, body: { name: name, id: ip_set_id, ips: ips }.to_json)
+        .to_return(status: 200, body: response, headers: {})
+
+      expect(subject.update_secondary_ip_set(ip_set_id, name, ips)).to eq({})
+    end
+  end
+
+  describe '#delete_secondary_ip_set' do
+    let(:response) { '{}' }
+    let(:ip_set_id) { 123 }
+
+    it 'delete ip set' do
+      stub_request(:delete, api_domain + "/dns/secondary/ipSet/#{ip_set_id}")
+        .with(headers: request_headers)
+        .to_return(status: 200, body: response, headers: {})
+
+      expect(subject.delete_secondary_ip_set(ip_set_id)).to eq({})
+    end
+  end
+
   describe '#request' do
     before do
       stub_request(:get, api_domain + '/some_path')

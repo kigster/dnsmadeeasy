@@ -1,6 +1,6 @@
 module DnsMadeEasy
   API_BASE_URL_PRODUCTION = 'https://api.dnsmadeeasy.com/V2.0'
-  API_BASE_URL_SANDBOX    = 'https://sandboxapi.dnsmadeeasy.com/V2.0'
+  API_BASE_URL_SANDBOX    = 'https://api.sandbox.dnsmadeeasy.com/V2.0'
 end
 
 require 'dnsmadeeasy/version'
@@ -21,6 +21,8 @@ module DnsMadeEasy
   class InvalidCredentialsFormatError < Error;
   end
   class NoSuchAccountError < Error;
+  end
+  class NoDomainError < Error;
   end
 
   class << self
