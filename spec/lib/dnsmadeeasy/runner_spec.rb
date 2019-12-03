@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'dnsmadeeasy/runner'
 require 'forwardable'
@@ -19,7 +21,7 @@ module DnsMadeEasy
   end
 end
 
-RSpec.describe DnsMadeEasy::Runner do
+RSpec.describe DnsMadeEasy::Runner do # rubocop:todo Metrics/BlockLength
   let(:runner) { described_class.new(argv) }
   subject { ::DnsMadeEasy::Output.lines }
 
@@ -49,7 +51,7 @@ RSpec.describe DnsMadeEasy::Runner do
 
     it 'should have been called exit' do
       expect(DnsMadeEasy::Output.exits.size).to eq(3)
-      expect(DnsMadeEasy::Output.exits).to eq [1,1,1]
+      expect(DnsMadeEasy::Output.exits).to eq [1, 1, 1]
     end
   end
 
@@ -62,7 +64,7 @@ RSpec.describe DnsMadeEasy::Runner do
 
     it 'should have been called exit' do
       expect(DnsMadeEasy::Output.exits.size).to eq(2)
-      expect(DnsMadeEasy::Output.exits).to eq [0,2]
+      expect(DnsMadeEasy::Output.exits).to eq [0, 2]
     end
   end
 end

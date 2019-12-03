@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'yaml'
 require 'dnsmadeeasy'
 require 'hashie/extensions/mash/symbolize_keys'
@@ -71,9 +73,7 @@ module DnsMadeEasy
   # )
 
   module Credentials
-
     class << self
-
       # Create a new instance of Credentials::ApiKeys
       def create(key, secret, encryption_key = nil)
         ApiKeys.new(key, secret, encryption_key)
@@ -83,13 +83,13 @@ module DnsMadeEasy
                          account: nil,
                          encryption_key: nil)
 
-        YamlFile.new(file: file).keys(account:        account,
+        YamlFile.new(file: file).keys(account: account,
                                       encryption_key: encryption_key)
       end
 
       # @return String path to the default credentials file.
       def default_credentials_path(user: nil)
-        user ?
+        user ? # rubocop:todo Style/MultilineTernaryOperator
           File.expand_path(Dir.home(user) + '/.dnsmadeeasy/credentials.yml').freeze :
           File.expand_path('~/.dnsmadeeasy/credentials.yml').freeze
       end

@@ -1,14 +1,16 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
-RSpec.describe DnsMadeEasy::Api::Client do
+RSpec.describe DnsMadeEasy::Api::Client do # rubocop:todo Metrics/BlockLength
   let(:api_domain) { DnsMadeEasy::API_BASE_URL_PRODUCTION }
   let(:user_domain)  { 'something.somedomain.boo' }
   let(:api_key) { 'soooo secret' }
   let(:secret_key) { 'soooo secret' }
   let(:request_headers) do
-    { 'Accept'              => 'application/json',
-      'X-Dnsme-Apikey'      => 'soooo secret',
-      'X-Dnsme-Hmac'        => 'ff6e87e78ff909573362c9a38df13ccc5fa01846',
+    { 'Accept' => 'application/json',
+      'X-Dnsme-Apikey' => 'soooo secret',
+      'X-Dnsme-Hmac' => 'ff6e87e78ff909573362c9a38df13ccc5fa01846',
       'X-Dnsme-Requestdate' => 'Wed, 21 May 2014 18:08:37 GMT' }
   end
 
@@ -285,8 +287,8 @@ RSpec.describe DnsMadeEasy::Api::Client do
                                                       'SRV',
                                                       '192.168.1.1',
                                                       'priority' => priority,
-                                                      'weight'   => weight,
-                                                      'port'     => port).and_return({})
+                                                      'weight' => weight,
+                                                      'port' => port).and_return({})
 
       expect(subject.create_srv_record(user_domain, 'serv',
                                        priority,
@@ -306,9 +308,9 @@ RSpec.describe DnsMadeEasy::Api::Client do
       expect(subject).to receive(:create_record).with(user_domain,
                                                       'redirect', 'HTTPRED', '192.168.1.1',
                                                       'redirectType' => redirect_type,
-                                                      'description'  => description,
-                                                      'keywords'     => keywords,
-                                                      'title'        => title).and_return({})
+                                                      'description' => description,
+                                                      'keywords' => keywords,
+                                                      'title' => title).and_return({})
 
       expect(subject.create_httpred_record(user_domain,
                                            'redirect',
@@ -338,7 +340,7 @@ RSpec.describe DnsMadeEasy::Api::Client do
     end
   end
 
-  describe '#update_records' do
+  describe '#update_records' do # rubocop:todo Metrics/BlockLength
     let(:response) { '{}' }
 
     before do
@@ -348,20 +350,20 @@ RSpec.describe DnsMadeEasy::Api::Client do
     it 'updates a record' do
       records = [
         {
-          'id'          => 21,
-          'name'        => 'mail',
-          'type'        => 'A',
-          'value'       => '1.1.1.1',
+          'id' => 21,
+          'name' => 'mail',
+          'type' => 'A',
+          'value' => '1.1.1.1',
           'gtdLocation' => 'DEFAULT',
-          'ttl'         => 300
+          'ttl' => 300
         },
         {
-          'id'          => 22,
-          'name'        => 'post',
-          'type'        => 'A',
-          'value'       => '1.1.1.2',
+          'id' => 22,
+          'name' => 'post',
+          'type' => 'A',
+          'value' => '1.1.1.2',
           'gtdLocation' => 'DEFAULT',
-          'ttl'         => 300
+          'ttl' => 300
         }
       ]
 
@@ -441,7 +443,7 @@ RSpec.describe DnsMadeEasy::Api::Client do
       {
         data: [
           {
-            ipSetId: 11341,
+            ipSetId: 11_341,
             name: user_domain,
             id: 123
           },
@@ -605,16 +607,15 @@ RSpec.describe DnsMadeEasy::Api::Client do
 
     before do
       response['x-dnsme-requestsremaining'] = 2345
-      response['x-dnsme-requestlimit']      = 20000
+      response['x-dnsme-requestlimit']      = 20_000
     end
     before { subject.send(:process_rate_limits, response) }
 
     context 'with a 2xx, empty-string response' do
-      its(:request_limit) { is_expected.to eq(20000) }
+      its(:request_limit) { is_expected.to eq(20_000) }
       its(:requests_remaining) { is_expected.to eq(2345) }
     end
   end
-
 
   describe '.public_operations' do
     subject { described_class.public_operations }

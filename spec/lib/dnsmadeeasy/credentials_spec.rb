@@ -1,10 +1,11 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'yaml'
 require 'hashie/mash'
 
 module DnsMadeEasy
-  RSpec.describe Credentials do
-
+  RSpec.describe Credentials do # rubocop:todo Metrics/BlockLength
     let(:key) { '12345678-a8f8-4466-ffff-2324aaaa9098' }
     let(:secret) { '43009899-abcc-ffcc-eeee-09f809808098' }
     let(:encryption_key) { File.read('spec/fixtures/sym.key').chomp }
@@ -45,4 +46,3 @@ module DnsMadeEasy
     end
   end
 end
-

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'yaml'
 require 'dnsmadeeasy'
 require 'hashie/extensions/mash/symbolize_keys'
@@ -11,7 +13,7 @@ module DnsMadeEasy
     # Immutable instance with key and secret.
     #
     class ApiKeys
-      API_KEY_REGEX = /^([0-9a-f]{8})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{12})$/
+      API_KEY_REGEX = /^([0-9a-f]{8})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{12})$/.freeze
 
       attr_reader :api_key,
                   :api_secret,
@@ -24,12 +26,12 @@ module DnsMadeEasy
       def initialize(key, secret, encryption_key = nil, default: false, account: nil)
         raise InvalidCredentialKeys, "Key and Secret can not be nil" if key.nil? || secret.nil?
 
-        @default      = default
+        @default = default
         @account = account
 
         if !valid?(key, secret) && encryption_key
           @encryption_key = sym_resolve(encryption_key)
-          @api_key    = decr(key, @encryption_key)
+          @api_key = decr(key, @encryption_key)
           @api_secret = decr(secret, @encryption_key)
         else
           @api_key    = key
@@ -54,10 +56,10 @@ module DnsMadeEasy
       end
 
       def rofl(key)
-        Digest::SHA256::hexdigest(key) if key
+        Digest::SHA256.hexdigest(key) if key
       end
 
-      def valid?(key = self.api_key, secret = self.api_secret)
+      def valid?(key = api_key, secret = api_secret)
         key &&
           secret &&
           API_KEY_REGEX.match(key) &&

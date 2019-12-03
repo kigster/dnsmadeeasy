@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'yaml'
 require 'hashie/mash'
@@ -5,15 +7,18 @@ require 'hashie/extensions/symbolize_keys'
 
 module DnsMadeEasy
   module Credentials
-
-    RSpec.describe YamlFile do
+    RSpec.describe YamlFile do # rubocop:todo Metrics/BlockLength
       before { ENV['DME_KEY'] = encryption_key }
 
       subject(:yaml_file) { described_class.new(file: file) }
-      let(:hash) { Hashie::Mash.new(
-        Hashie::Extensions::SymbolizeKeys.symbolize_keys(
-          ::YAML.load(
-            ::File.read(file))))
+      let(:hash) {
+        Hashie::Mash.new(
+          Hashie::Extensions::SymbolizeKeys.symbolize_keys(
+            ::YAML.safe_load(
+              ::File.read(file)
+            )
+          )
+        )
       }
 
       let(:key) { '12345678-a8f8-4466-ffff-2324aaaa9098' }
@@ -48,7 +53,7 @@ module DnsMadeEasy
         end
       end
 
-      context 'multi-account' do
+      context 'multi-account' do # rubocop:todo Metrics/BlockLength
         let(:file) { 'spec/fixtures/credentials-multi-account.yml' }
         let(:accounts) { hash.accounts }
         let(:encryption_key) { nil }
@@ -74,6 +79,7 @@ module DnsMadeEasy
           it { is_expected.to eql(expected_keys) }
         end
 
+        # rubocop:todo Metrics/BlockLength
         context 'fetch a sub-account with encryption' do
           let(:creds) { accounts.first.credentials }
           let(:account) { 'production' }
@@ -95,8 +101,10 @@ module DnsMadeEasy
             end
 
             context 'and we do pass it in' do
-              subject(:keys) { yaml_file.keys(account:        'preview',
-                                              encryption_key: encryption_key) }
+              subject(:keys) {
+                yaml_file.keys(account: 'preview',
+                               encryption_key: encryption_key)
+              }
               context 'as a pathname' do
                 let(:encryption_key) { 'spec/fixtures/sym.key' }
                 it { is_expected.to eql(expected_keys) }
@@ -109,6 +117,7 @@ module DnsMadeEasy
             end
           end
         end
+        # rubocop:enable Metrics/BlockLength
       end
     end
   end
