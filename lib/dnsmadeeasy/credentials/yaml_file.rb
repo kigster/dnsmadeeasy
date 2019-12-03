@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'yaml'
 require 'dnsmadeeasy'
 require 'hashie/extensions/symbolize_keys'
@@ -6,7 +8,6 @@ require_relative 'api_keys'
 
 module DnsMadeEasy
   module Credentials
-
     class YamlFile
       attr_accessor :filename, :account, :mash
 
@@ -23,17 +24,23 @@ module DnsMadeEasy
                   account = if account
                               mash.accounts.find { |a| a.name == account.to_s }
                             elsif
+                              # rubocop:todo Layout/ConditionPosition
                               mash.accounts.size == 1
+                              # rubocop:enable Layout/ConditionPosition
                               mash.accounts.first
                             else
-                              mash.accounts.find { |a| a.default_account }
+                              mash.accounts.find(&:default_account)
                             end
 
-                  raise DnsMadeEasy::APIKeyAndSecretMissingError,
-                        (account ? "account #{account} was not found" : 'default account does not exist') unless account
+                  unless account
+                    raise DnsMadeEasy::APIKeyAndSecretMissingError,
+                          (account ? "account #{account} was not found" : 'default account does not exist')
+                  end
 
-                  raise DnsMadeEasy::InvalidCredentialsFormatError,
-                        'Expected account entry to have "credentials" key' unless account.credentials
+                  unless account.credentials
+                    raise DnsMadeEasy::InvalidCredentialsFormatError,
+                          'Expected account entry to have "credentials" key'
+                  end
 
                   account.credentials
 
@@ -45,9 +52,11 @@ module DnsMadeEasy
                         'expected either "accounts" or "credentials" as the top-level key'
                 end
 
+        # rubocop:todo Style/MultilineTernaryOperator
         creds ? ApiKeys.new(creds.api_key,
                             creds.api_secret,
                             encryption_key || creds.encryption_key) : nil
+        # rubocop:enable Style/MultilineTernaryOperator
       end
 
       def to_s
@@ -69,10 +78,8 @@ module DnsMadeEasy
       end
 
       def load_hash
-        Hashie::Mash.new(YAML.load(contents))
+        Hashie::Mash.new(YAML.safe_load(contents))
       end
-
     end
-
   end
 end

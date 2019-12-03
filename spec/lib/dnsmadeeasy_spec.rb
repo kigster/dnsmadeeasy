@@ -1,7 +1,9 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 module DnsMadeEasy
-  RSpec.describe DnsMadeEasy do
+  RSpec.describe DnsMadeEasy do # rubocop:todo Metrics/BlockLength
     let(:spec_credentials_file) { 'spec/fixtures/credentials.yml' }
 
     before do
@@ -57,7 +59,6 @@ module DnsMadeEasy
         it 'should call through to the client' do
           expect(DnsMadeEasy.base_uri).to eq(DnsMadeEasy::API_BASE_URL_PRODUCTION)
         end
-
       end
     end
 

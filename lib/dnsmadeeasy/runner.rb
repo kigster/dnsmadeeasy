@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 
 require 'colored2'
 require 'awesome_print'
@@ -8,7 +9,7 @@ require 'etc'
 
 module DnsMadeEasy
   class Runner
-    SUPPORTED_FORMATS = %w(json json_pretty yaml pp)
+    SUPPORTED_FORMATS = %w(json json_pretty yaml pp).freeze
 
     attr_accessor :format, :argv, :operation
 
@@ -18,7 +19,7 @@ module DnsMadeEasy
     end
 
     def execute!
-      if argv.empty? || argv.size < 1
+      if argv.empty? || argv.empty?
         print_help_message
       else
         configure_authentication
@@ -30,63 +31,68 @@ module DnsMadeEasy
     private
 
     def call_through_client(method)
-      begin
-        result = DnsMadeEasy.client.send(method, *argv)
-        case result
-        when NilClass
-          puts 'No records returned.'
-        when Hashie::Mash
-          print_formatted(result.to_hash, format)
-        when Array
-          print_formatted(result, format)
-        else
-          print_formatted(result, format)
-        end
-        0
-      rescue ArgumentError => e
-        sig = method_signature(e, method)
-        (sig.shift == method.to_s) ?
-          print_signature(method, sig) :
-          print_error('Action', "#{method.to_s.bold.yellow}", 'has generated an error'.red, exception: e)
-        1
-      rescue NoMethodError => e
-
-        print_error('Action', "#{method.to_s.bold.yellow}", 'is not valid.'.red)
-        puts 'HINT: try running ' + 'dme operations'.bold.green + ' to see the list of valid operations.'
-        2
-      rescue Net::HTTPServerException => e
-        print_error(exception: e)
-        3
+      result = DnsMadeEasy.client.send(method, *argv)
+      case result
+      when NilClass
+        puts 'No records returned.'
+      when Hashie::Mash
+        print_formatted(result.to_hash, format)
+      when Array
+        print_formatted(result, format)
+      else
+        print_formatted(result, format)
       end
+      0
+    rescue ArgumentError => e
+      sig = method_signature(e, method)
+      # rubocop:todo Style/MultilineTernaryOperator
+      sig.shift == method.to_s ?
+        print_signature(method, sig) :
+        print_error('Action', method.to_s.bold.yellow.to_s, 'has generated an error'.red, exception: e)
+      # rubocop:enable Style/MultilineTernaryOperator
+      1
+    rescue NoMethodError => e
+      print_error('Action', method.to_s.bold.yellow.to_s, 'is not valid.'.red)
+      puts 'HINT: try running ' + 'dme operations'.bold.green + ' to see the list of valid operations.'
+      2
+    rescue Net::HTTPServerException => e
+      print_error(exception: e)
+      3
     end
 
     def print_error(*args, exception: nil)
       unless args.empty?
-        puts <<-EOF
-#{'Error:'.bold.red} #{args.join(' ').red}
+        # rubocop:todo Naming/HeredocDelimiterNaming
+        puts <<~EOF
+          # rubocop:enable Naming/HeredocDelimiterNaming
+            #{'Error:'.bold.red} #{args.join(' ').red}
         EOF
       end
 
       if exception
-        puts <<-EOF
-#{'Exception: '.bold.red}#{exception.inspect.red}
+        # rubocop:todo Naming/HeredocDelimiterNaming
+        puts <<~EOF
+          # rubocop:enable Naming/HeredocDelimiterNaming
+            #{'Exception: '.bold.red}#{exception.inspect.red}
         EOF
       end
     end
 
     def print_signature(method, sig)
-      puts <<-EOF
-#{'Error: '.bold.yellow}
-      #{'You are missing some arguments for this operation:'.red}
+      # rubocop:todo Naming/HeredocDelimiterNaming
+      puts <<~EOF # rubocop:todo Naming/HeredocDelimiterNaming
+        # rubocop:enable Naming/HeredocDelimiterNaming
+          #{'Error: '.bold.yellow}
+                #{'You are missing some arguments for this operation:'.red}
 
-      #{'Correct Usage: '.bold.yellow}
-      #{method.to_s.bold.green} #{sig.join(' ').blue }
+                #{'Correct Usage: '.bold.yellow}
+                #{method.to_s.bold.green} #{sig.join(' ').blue}
 
       EOF
     end
 
     def process_flags_format
-      if argv.first && argv.first.start_with?('--')
+      if argv.first&.start_with?('--')
         format = argv.shift.gsub(/^--/, '')
         if format =~ /^h(elp)?$/i
           print_help_message
@@ -125,13 +131,15 @@ module DnsMadeEasy
     end
 
     def print_usage_message
-      puts <<-EOF
-#{'Usage:'.bold.yellow}
-      #{'# Execute an API call:'.dark}
-      #{"dme [ #{SUPPORTED_FORMATS.map { |f| "--#{f}" }.join(' | ')} ] operation [ arg1 arg2 ... ] ".bold.green}
+      # rubocop:todo Naming/HeredocDelimiterNaming
+      puts <<~EOF
+        # rubocop:enable Naming/HeredocDelimiterNaming
+          #{'Usage:'.bold.yellow}
+                #{'# Execute an API call:'.dark}
+                #{"dme [ #{SUPPORTED_FORMATS.map { |f| "--#{f}" }.join(' | ')} ] operation [ arg1 arg2 ... ] ".bold.green}
 
-      #{'# Print suported operations:'.dark}
-      #{'dme op[erations]'.bold.green}
+                #{'# Print suported operations:'.dark}
+                #{'dme op[erations]'.bold.green}
 
       EOF
     end
@@ -139,53 +147,57 @@ module DnsMadeEasy
     def print_help_message
       print_usage_message
 
-      puts <<-EOF
-#{header 'Credentials'}
-  Store your credentials in a YAML file
-  #{DnsMadeEasy::Credentials.default_credentials_path(user: ENV['USER'])} as follows:
+      # rubocop:todo Naming/HeredocDelimiterNaming
+      puts <<~EOF
+        # rubocop:enable Naming/HeredocDelimiterNaming
+          #{header 'Credentials'}
+            Store your credentials in a YAML file
+            #{DnsMadeEasy::Credentials.default_credentials_path(user: ENV['USER'])} as follows:
 
-  #{'credentials:
-    api_key: XXXX
-    api_secret: YYYY'.bold.magenta}
+            #{'credentials:
+              api_key: XXXX
+              api_secret: YYYY'.bold.magenta}
 
-  Or a multi-account version:
+            Or a multi-account version:
 
-  #{'accounts:
-    - name: production
-      credentials:
-        api_key: XXXX
-        api_secret: YYYY
-        encryption_key: my_key
-    - name: development
-      default_account: true
-      credentials:
-        api_key: ZZZZ
-        api_secret: WWWW'.bold.magenta}
+            #{'accounts:
+              - name: production
+                credentials:
+                  api_key: XXXX
+                  api_secret: YYYY
+                  encryption_key: my_key
+              - name: development
+                default_account: true
+                credentials:
+                  api_key: ZZZZ
+                  api_secret: WWWW'.bold.magenta}
 
-#{header 'Examples:'}
-   #{'dme domain moo.com
-   dme --json domain moo.com
-   dme find_all moo.com A www
-   dme find_first moo.com CNAME vpn-west
-   dme --yaml find_first moo.com CNAME vpn-west'.green}
+          #{header 'Examples:'}
+             #{'dme domain moo.com
+             dme --json domain moo.com
+             dme find_all moo.com A www
+             dme find_first moo.com CNAME vpn-west
+             dme --yaml find_first moo.com CNAME vpn-west'.green}
 
       EOF
       exit 1
     end
 
     def header(message)
-      "#{message.bold.yellow}"
+      message.bold.yellow.to_s
     end
 
     def print_supported_operations
-      puts <<-EOF
-#{header 'Actions:'}
-  Checkout the README and RubyDoc for the arguments to each operation,
-  which is basically a method on a DnsMadeEasy::Api::Client instance.
-  #{'http://www.rubydoc.info/gems/dnsmadeeasy/DnsMadeEasy/Api/Client'.blue.bold.underlined}
+      # rubocop:todo Naming/HeredocDelimiterNaming
+      puts <<~EOF
+        # rubocop:enable Naming/HeredocDelimiterNaming
+          #{header 'Actions:'}
+            Checkout the README and RubyDoc for the arguments to each operation,
+            which is basically a method on a DnsMadeEasy::Api::Client instance.
+            #{'http://www.rubydoc.info/gems/dnsmadeeasy/DnsMadeEasy/Api/Client'.blue.bold.underlined}
 
-#{header 'Valid Operations Are:'}
-  #{DnsMadeEasy::Api::Client.public_operations.join("\n  ").green.bold}
+          #{header 'Valid Operations Are:'}
+            #{DnsMadeEasy::Api::Client.public_operations.join("\n  ").green.bold}
 
       EOF
     end
@@ -208,26 +220,26 @@ module DnsMadeEasy
 
     # e.backtrack.first looks like this:
     # ..../dnsmadeeasy/lib/dnsmadeeasy/api/client.rb:143:in `create_a_record'
+    # rubocop:todo Naming/MethodParameterName
     def method_signature(e, method)
       file, line, call_method = e.backtrace.first.split(':')
       call_method             = call_method.gsub(/[']/, '').split('`').last
       if call_method && call_method.to_sym == method.to_sym
         source_line = File.open(file).to_a[line.to_i - 1].chomp!
         if source_line =~ /def #{method}/
-          signature = source_line.strip.gsub(/,/, '').split(%r{[ ()]})
+          signature = source_line.strip.gsub(/,/, '').split(/[ ()]/)
           signature.shift # remove def
           return signature.reject { |a| a =~ /^([={}\)\(])*$/ }
         end
       end
       []
-    rescue
+    rescue StandardError
       []
     end
-
+    # rubocop:enable Naming/MethodParameterName
 
     def puts(*args)
       super(*args)
     end
-
   end
 end

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module DnsMadeEasy
   API_BASE_URL_PRODUCTION = 'https://api.dnsmadeeasy.com/V2.0'
   API_BASE_URL_SANDBOX    = 'https://api.sandbox.dnsmadeeasy.com/V2.0'
@@ -38,9 +40,10 @@ module DnsMadeEasy
                             encryption_key = nil)
 
       credentials = ::DnsMadeEasy::Credentials.keys_from_file(
-        file:           file || ::DnsMadeEasy::Credentials.default_credentials_path(user: ENV['USER']),
-        account:        account,
-        encryption_key: encryption_key)
+        file: file || ::DnsMadeEasy::Credentials.default_credentials_path(user: ENV['USER']),
+        account: account,
+        encryption_key: encryption_key
+      )
       if credentials
         configure do |config|
           config.api_key    = credentials.api_key
@@ -55,8 +58,8 @@ module DnsMadeEasy
                               account: nil,
                               encryption_key: nil)
 
-      DnsMadeEasy::Credentials.keys_from_file file:           file,
-                                              account:        account,
+      DnsMadeEasy::Credentials.keys_from_file file: file,
+                                              account: account,
                                               encryption_key: encryption_key
     end
 
@@ -77,17 +80,20 @@ module DnsMadeEasy
     end
 
     def create_client(sandbox = false,
-                      api_key: self.default_api_key,
-                      api_secret: self.default_api_secret,
+                      api_key: default_api_key,
+                      api_secret: default_api_secret,
 
                       **options)
       raise APIKeyAndSecretMissingError, 'Please set #api_key and #api_secret' unless api_key && api_secret
+
       ::DnsMadeEasy::Api::Client.new(api_key, api_secret, sandbox, **options)
     end
 
     # Basically delegate it all to the Client instance
     # if the method call is supported.
     #
+    # rubocop:todo Style/MissingRespondToMissing
+    # rubocop:todo Style/MethodMissingSuper
     def method_missing(method, *args, &block)
       if client.respond_to?(method)
         client.send(method, *args, &block)
@@ -95,5 +101,7 @@ module DnsMadeEasy
         super(method, *args, &block)
       end
     end
+    # rubocop:enable Style/MethodMissingSuper
+    # rubocop:enable Style/MissingRespondToMissing
   end
 end
