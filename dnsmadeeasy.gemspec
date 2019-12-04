@@ -6,35 +6,45 @@ require 'dnsmadeeasy/version'
 
 # rubocop:todo Naming/HeredocDelimiterCase
 DnsMadeEasy::DESCRIPTION = <<~eof
-    This is a fully-featured DNS API client for DnsMadeEasy.com, that includes
-    both the Ruby API and a corresponding CLI interface. This gem is based on the
-    "dnsmadeeasy-rest-api". We also wish to thank the original author Phil Cohen who
-    kindly passed on the RubyGems namespace, and now you can install just plain simple
-    install "dnsmadeeasy" gem. The gem additionally supports storing credentials in the
-    ~/.dnsmadeeasy/credentials.yml file, supports multiple accounts, encryption, and more.
+    This is an authoratative and fully-featured API client for the DNS Provider "DnsMadeEasy.com".
+
+    This library offers both a rich Ruby API that you can use to automate DNS record management, as well
+    as a rich CLI interface with the command line executable "dme" installed when you install the gem.
+    The gem additionally supports storing credentials in the ~/.dnsmadeeasy/credentials.yml
+    file, supports multiple accounts, encryption, and more.
+
+    If you are using Chef consider using the "dnsmadeeasy" Chef Cookbook, while uses this gem behind
+    the scenes: https://supermarket.chef.io/cookbooks/dnsmadeeasy<br />
+
+    ACKNOWLEDGEMENTS:
+
+    1. This gem is based on the original work contributed by Wanelo.com to the
+       now abandonded "dnsmadeeasy-rest-api" client.
+
+    2. We also wish to thank the gem author Phil Cohen who
+       kindly yielded the "dnsmadeeasy" RubyGems namespace to this gem.
+
+    3. We also thank Praneeth Are for contributing the support for secondary domains in 0.3.5.
 eof
 
 Gem::Specification.new do |spec|
   spec.name          = 'dnsmadeeasy'
   spec.version       = DnsMadeEasy::VERSION
-  spec.authors       = ['Konstantin Gredeskoul', 'Arnoud Vermeer', 'Paul Henry', 'James Hart', 'Phil Cohen']
+  spec.authors       = ['Konstantin Gredeskoul', 'Arnoud Vermeer', 'Paul Henry', 'James Hart', 'Phil Cohen', 'Praneeth Are']
   spec.email         = %w(kigster@gmail.com letuboy@gmail.com hjhart@gmail.com)
   spec.summary       = DnsMadeEasy::DESCRIPTION
   spec.description   = DnsMadeEasy::DESCRIPTION
   # rubocop:todo Naming/HeredocDelimiterNaming
   spec.post_install_message = <<~EOF
-    # rubocop:enable Naming/HeredocDelimiterNaming
-
       Thank you for using the DnsMadeEasy ruby gem, the Ruby client
       API for DnsMadeEasy.com's SDK v2. Please note that this gem
-      comes with a command line utility 'dme' which you can use
+      comes with a rich command line utility 'dme' which you can use
       instead of the ruby API if you prefer. Run `dme` with no
       arguments to see the help message.
 
-      You can store your credentials in a YAML file in your home
-      directory. For more information, please see README at:
+      You can also store (multi-account) credentials in a YAML file in
+      your home directory. For more information, please see README at:
       https://github.com/kigster/dnsmadeeasy
-
   EOF
 
   spec.homepage      = 'https://github.com/kigster/dnsmadeeasy'
