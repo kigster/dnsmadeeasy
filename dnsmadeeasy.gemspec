@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+# vim: ft=ruby
+
 lib = File.expand_path('lib', __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'dnsmadeeasy/version'
