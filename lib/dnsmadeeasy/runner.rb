@@ -12,6 +12,7 @@ require 'etc'
 module DnsMadeEasy
   class Runner
     SUPPORTED_FORMATS = %w(json json_pretty yaml pp).freeze
+    SUPPORTED_FORMAT_FLAGS = SUPPORTED_FORMATS.map { |f| "--#{f}" }.freeze
 
     attr_accessor :format, :argv, :operation
 
@@ -46,6 +47,7 @@ module DnsMadeEasy
       end
       0
     rescue ArgumentError => e
+      STDERR.puts(e.backtrace.join("\n").yellow)
       sig = method_signature(e, method)
       print_signature(method, sig) if sig.shift == method.to_s
       print_error('Action', method.to_s.bold.yellow.to_s, 'has generated an error'.red, exception: e)
@@ -85,22 +87,23 @@ module DnsMadeEasy
     end
 
     def process_flags_format
-      format = nil
-      if argv.first&.start_with?('--')
-        format = argv.shift.gsub(/^--/, '')
-        if format =~ /^h(elp)?$/i
-          print_help_message
-        end
+      if argv.first =~ /^op(erations)?$/i
+        print_supported_operations
+
+      elsif argv.include?('--help') || argv.include?('-h')
+        print_help_message
+
+      elsif !(argv & SUPPORTED_FORMAT_FLAGS).empty?
+        format_flag = (argv & SUPPORTED_FORMAT_FLAGS).first
+        format = format_flag.delete '--'
+        argv.delete(format_flag)
         unless SUPPORTED_FORMATS.include?(format)
-          puts "Error: format #{format.bold.red} is not supported."
-          puts "Supported values are: #{SUPPORTED_FORMATS.join(', ')}"
+          warn "Error: format #{format.bold.red} is not supported."
+          warn "Supported values are: #{SUPPORTED_FORMATS.join(', ')}"
           exit 1
         end
-      elsif argv.first =~ /^op(erations)?$/i
-        print_supported_operations
-        exit 0
+        format
       end
-      format
     end
 
     def configure_authentication
@@ -130,54 +133,62 @@ module DnsMadeEasy
 
     def print_usage_message
       puts <<~EOF
-          #{'Usage:'.bold.yellow}
-                #{'# Execute an API call:'.dark}
-                #{"dme [ #{SUPPORTED_FORMATS.map { |f| "--#{f}" }.join(' | ')} ] operation [ arg1 arg2 ... ] ".bold.green}
+        #{'Usage:'.bold.yellow}
+          #{'# Execute an API call:'.dark}
+          #{"dme [ #{SUPPORTED_FORMATS.map { |f| "--#{f}" }.join(' | ')} ] operation [ arg1 arg2 ... ] ".bold.green}
 
-                #{'# Print suported operations:'.dark}
-                #{'dme op[erations]'.bold.green}
-
+          #{'# Print suported operations:'.dark}
+          #{'dme op[erations]'.bold.green}
       EOF
     end
 
     def print_help_message
       print_usage_message
       puts <<~EOF
+
         #{header 'Credentials'}
-          Store your credentials in a YAML file
-          #{DnsMadeEasy::Credentials.default_credentials_path(user: ENV['USER'])} as follows:
+          Store your credentials in a YAML file #{DnsMadeEasy::Credentials.default_credentials_path(user: ENV['USER']).blue}
+          as follows:
 
-          #{'credentials:
-            api_key: XXXX
-            api_secret: YYYY'.bold.magenta}
+            #{'# ~/.dnsmadeeasy/credentials.yml'.bold.black}
+            #{'credentials:
+        api_key: XXXX
+        api_secret: YYYY'.cyan}
 
-          Or a multi-account version:
-
-          #{'accounts:
-            - name: production
-              credentials:
-                api_key: XXXX
-                api_secret: YYYY
-                encryption_key: my_key
-            - name: development
-              default_account: true
-              credentials:
-                api_key: ZZZZ
-                api_secret: WWWW'.bold.magenta}
-
-        #{header 'Examples:'}
-           #{'dme domain moo.com
-           dme --json domain  moo.com
-
-           dme all            moo.com
-           dme find_all       moo.com A       www
-           dme find_first     moo.com CNAME   vpn-west
-           dme update_record  moo.com www  A  11.3.43.56
-           dme create_record  moo.com ftp  CNAME  www.moo.com.
-
-           dme --yaml find_first moo.com CNAME vpn-west'.green}
+          Or, you can use a multi-account version, but in that case it helps if you
+          specify which of the accounts is the default:
 
       EOF
+
+      puts <<-YAML
+    #{'# ~/.dnsmadeeasy/credentials.yml'.bold.black}
+    #{'accounts:
+    - name: production
+      credentials:
+        api_key: XXXX
+        api_secret: YYYY
+        encryption_key: my_key
+    - name: development
+      default_account: true
+      credentials:
+        api_key: ZZZZ
+        api_secret: WWWW'.cyan}
+      YAML
+
+      puts header 'Examples:'
+
+      puts '
+  $ dme domain moo.com
+  $ dme domain moo.com --yaml > moo.yml
+
+  $ dme all            moo.com
+  $ dme find_all       moo.com A          www
+  $ dme find_first     moo.com CNAME      vpn-west
+
+  $ dme update_record  moo.com www    A   11.3.43.56
+  $ dme create_record  moo.com ftp CNAME  www.moo.com.
+
+  $ dme --yaml find_first moo.com CNAME vpn-west'.green
       exit 1
     end
 

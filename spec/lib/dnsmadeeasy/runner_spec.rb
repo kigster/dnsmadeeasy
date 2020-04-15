@@ -48,11 +48,6 @@ RSpec.describe DnsMadeEasy::Runner do
 
     its(:size) { should be > 5 }
     its(:to_s) { should match /Usage/ }
-
-    it 'should have been called exit' do
-      expect(DnsMadeEasy::Output.exits.size).to eq(3)
-      expect(DnsMadeEasy::Output.exits).to eq [1, 1, 1]
-    end
   end
 
   describe 'operations' do
@@ -62,9 +57,5 @@ RSpec.describe DnsMadeEasy::Runner do
     its(:size) { should > 2 }
     its(:to_s) { should match /records_for/ }
 
-    it 'should have been called exit' do
-      expect(DnsMadeEasy::Output.exits.size).to eq(2)
-      expect(DnsMadeEasy::Output.exits).to eq [0, 2]
-    end
   end
 end
