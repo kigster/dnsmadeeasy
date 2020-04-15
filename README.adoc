@@ -120,9 +120,8 @@ You can use the following method to access both simple and multi-account YAML co
      @creds.api_secret # => ...
 ----
 
-  Method above simply returns the credentials instance, but does not "save" it as the default credentials like `configure_from_file`. Therefore, if you need to access multiple accounts at the same time, this method will help you maintain multiple credentials at the same time.
+Method above simply returns the credentials instance, but does not "save" it as the default credentials like `configure_from_file`. Therefore, if you need to access multiple accounts at the same time, this method will help you maintain multiple credentials at the same time.
 
-'''
 
 Once you configure the keys, you can also use the shortcut module to save you some typing:
 
@@ -334,31 +333,7 @@ Now, you place the encrypted values in the YAML file, and you can save "my.key" 
 
 This library offers a simple CLI client `dme` that maps the command line arguments to method arguments for corresponding actions:
 
-[source,bash]
-----
-❯ dme --help
-Usage:
-  # Execute an API call:
-  dme [ --json | --yaml ] operation [ arg1 arg2 ... ]
-
-  # Print suported operations:
-  dme op[erations]
-
-Credentials:
-  Store your credentials in a YAML file
-  /Users/kig/.dnsmadeeasy/credentials.yml as follows:
-
-  credentials:
-    api_key: XXXX
-    api_secret: YYYY
-
-Examples:
-   dme domain moo.com
-   dme --json domain moo.com
-   dme find_all moo.com A www
-   dme find_first moo.com CNAME vpn-west
-   dme --yaml find_first moo.com CNAME vpn-west
-----
+image:.dme-help.png[Usage,width="80%",border="2"]
 
 You can run `dme operations` to see the supported list of operations:
 
