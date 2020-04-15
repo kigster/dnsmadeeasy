@@ -5,8 +5,18 @@
 
 == Supporting Rest API SDK V2.0
 
-image:https://badge.fury.io/rb/dnsmadeeasy.svg[Gem Version,link=https://badge.fury.io/rb/dnsmadeeasy]
+NOTE: image:https://badge.fury.io/rb/dnsmadeeasy@2x.png["Gem Version", link="https://badge.fury.io/rb/dnsmadeeasy"]
+
+image:https://img.shields.io/gem/dt/dnsmadeeasy?style=for-the-badge[Downloads,link="https://rubygems.org/gems/dnsmadeeasy"]
+image:https://img.shields.io/github/issues/kigster/dnsmadeeasy?style=for-the-badge&logo=appveyor[Github Issues,link="https://github.com/kigster/dnsmadeeasy/issues"]
+image:https://img.shields.io/github/forks/kigster/dnsmadeeasy?style=for-the-badge&logo=appveyor[Forks,link="https://github.com/kigster/dnsmadeeasy/network/members"]
+image:https://img.shields.io/github/stars/kigster/dnsmadeeasy?style=for-the-badge&logo=appveyor[Stars,link="https://github.com/kigster/dnsmadeeasy/stargazers"]
+image:https://img.shields.io/github/license/kigster/dnsmadeeasy?style=for-the-badge&logo=appveyor[License,link="https://github.com/kigster/dnsmadeeasy/blob/master/LICENSE.txt"]
+
+
+image:https://github.com/kigster/dnsmadeeasy/workflows/Ruby/badge.svg?branch=master[Github Build,link=https://github.com/kigster/dnsmadeeasy/actions?query=workflow%3ARuby]
 image:https://travis-ci.org/kigster/dnsmadeeasy.svg?branch=master[Build Status,link=https://travis-ci.org/kigster/dnsmadeeasy]
+
 image:https://api.codeclimate.com/v1/badges/7a48648b482b5a5c9257/maintainability[Maintainability,link=https://codeclimate.com/github/kigster/dnsmadeeasy/maintainability]
 image:https://api.codeclimate.com/v1/badges/7a48648b482b5a5c9257/test_coverage[Test Coverage,link=https://codeclimate.com/github/kigster/dnsmadeeasy/test_coverage]
 
