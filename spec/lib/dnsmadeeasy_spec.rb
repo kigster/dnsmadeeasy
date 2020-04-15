@@ -3,7 +3,7 @@
 require 'spec_helper'
 
 module DnsMadeEasy
-  RSpec.describe DnsMadeEasy do # rubocop:todo Metrics/BlockLength
+  RSpec.describe DnsMadeEasy do
     let(:spec_credentials_file) { 'spec/fixtures/credentials.yml' }
 
     before do

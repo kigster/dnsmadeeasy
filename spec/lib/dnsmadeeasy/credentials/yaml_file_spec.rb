@@ -7,7 +7,7 @@ require 'hashie/extensions/symbolize_keys'
 
 module DnsMadeEasy
   module Credentials
-    RSpec.describe YamlFile do # rubocop:todo Metrics/BlockLength
+    RSpec.describe YamlFile do
       before { ENV['DME_KEY'] = encryption_key }
 
       subject(:yaml_file) { described_class.new(file: file) }
@@ -39,21 +39,24 @@ module DnsMadeEasy
           its(:keys) { should eq api_keys }
         end
 
-        context 'with encryption' do
+        context 'with encryption defined by an environment variable' do
           let(:encryption_key) { File.read('spec/fixtures/sym.key').chomp }
+
+          # emulate an environment variable having been set.
+          before { ENV['DME_KEY'] = encryption_key }
 
           let(:file) { 'spec/fixtures/credentials-crypted.yml' }
 
           require 'dnsmadeeasy/dme'
-
           subject(:creds) { DME.credentials_from_file(file: file) }
+
           its(:api_key) { should eq 'fcf80098-f2db-4a54-83f7-bcc990890980' }
           its(:api_secret) { should eq 'd09df9f9-b08d-481d-b5f5-40afafaaf9fc' }
-          its(:encryption_key) { should }
+          its(:encryption_key) { should eq encryption_key }
         end
       end
 
-      context 'multi-account' do # rubocop:todo Metrics/BlockLength
+      context 'multi-account' do
         let(:file) { 'spec/fixtures/credentials-multi-account.yml' }
         let(:accounts) { hash.accounts }
         let(:encryption_key) { nil }
@@ -79,7 +82,6 @@ module DnsMadeEasy
           it { is_expected.to eql(expected_keys) }
         end
 
-        # rubocop:todo Metrics/BlockLength
         context 'fetch a sub-account with encryption' do
           let(:creds) { accounts.first.credentials }
           let(:account) { 'production' }
@@ -117,7 +119,6 @@ module DnsMadeEasy
             end
           end
         end
-        # rubocop:enable Metrics/BlockLength
       end
     end
   end

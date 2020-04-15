@@ -9,8 +9,9 @@ rvm:
 - 2.4.3
 - 2.5.0
 - 2.6.5
+- 2.7.1
 - jruby-9.1.15.0
-before_install: gem install bundler -v 2.0.2
+before_install: gem install bundler
 before_script:
 - gem update --system
 - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64

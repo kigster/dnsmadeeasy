@@ -6,7 +6,7 @@ require 'hashie/mash'
 
 module DnsMadeEasy
   module Credentials
-    RSpec.describe ApiKeys do # rubocop:todo Metrics/BlockLength
+    RSpec.describe ApiKeys do
       let(:key) { '12345678-a8f8-4466-ffff-2324aaaa9098' }
       let(:real_key) { '12345678-a8f8-4466-ffff-2324aaaa9098' }
 
@@ -17,7 +17,7 @@ module DnsMadeEasy
 
       subject(:api_keys) { described_class.new(key, secret, encryption_key) }
 
-      context 'valid data' do # rubocop:todo Metrics/BlockLength
+      context 'valid data' do
         context 'non-encrypted ApiKeys' do
           its(:api_key) { should eq real_key }
           its(:api_secret) { should eq real_secret }

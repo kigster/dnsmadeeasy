@@ -2,7 +2,7 @@
 
 require 'spec_helper'
 
-RSpec.describe DnsMadeEasy::Api::Client do # rubocop:todo Metrics/BlockLength
+RSpec.describe DnsMadeEasy::Api::Client do
   let(:api_domain) { DnsMadeEasy::API_BASE_URL_PRODUCTION }
   let(:user_domain)  { 'something.somedomain.boo' }
   let(:api_key) { 'soooo secret' }
@@ -340,7 +340,7 @@ RSpec.describe DnsMadeEasy::Api::Client do # rubocop:todo Metrics/BlockLength
     end
   end
 
-  describe '#update_records' do # rubocop:todo Metrics/BlockLength
+  describe '#update_records' do
     let(:response) { '{}' }
 
     before do

@@ -1,6 +1,8 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
+# vim: ft=ruby
+
 require 'colored2'
 require 'awesome_print'
 require 'dnsmadeeasy'
@@ -14,7 +16,7 @@ module DnsMadeEasy
     attr_accessor :format, :argv, :operation
 
     def initialize(argv = nil)
-      self.argv   = argv || ARGV.dup
+      self.argv = argv || ARGV.dup
       self.format = process_flags_format
     end
 
@@ -45,11 +47,8 @@ module DnsMadeEasy
       0
     rescue ArgumentError => e
       sig = method_signature(e, method)
-      # rubocop:todo Style/MultilineTernaryOperator
-      sig.shift == method.to_s ?
-        print_signature(method, sig) :
-        print_error('Action', method.to_s.bold.yellow.to_s, 'has generated an error'.red, exception: e)
-      # rubocop:enable Style/MultilineTernaryOperator
+      print_signature(method, sig) if sig.shift == method.to_s
+      print_error('Action', method.to_s.bold.yellow.to_s, 'has generated an error'.red, exception: e)
       1
     rescue NoMethodError => e
       print_error('Action', method.to_s.bold.yellow.to_s, 'is not valid.'.red)
@@ -62,36 +61,31 @@ module DnsMadeEasy
 
     def print_error(*args, exception: nil)
       unless args.empty?
-        # rubocop:todo Naming/HeredocDelimiterNaming
         puts <<~EOF
-          # rubocop:enable Naming/HeredocDelimiterNaming
-            #{'Error:'.bold.red} #{args.join(' ').red}
+          #{'Error:'.bold.red} #{args.join(' ').red}
         EOF
       end
 
       if exception
-        # rubocop:todo Naming/HeredocDelimiterNaming
         puts <<~EOF
-          # rubocop:enable Naming/HeredocDelimiterNaming
-            #{'Exception: '.bold.red}#{exception.inspect.red}
+          #{'Exception: '.bold.red}#{exception.inspect.red}
         EOF
       end
     end
 
     def print_signature(method, sig)
-      # rubocop:todo Naming/HeredocDelimiterNaming
-      puts <<~EOF # rubocop:todo Naming/HeredocDelimiterNaming
-        # rubocop:enable Naming/HeredocDelimiterNaming
-          #{'Error: '.bold.yellow}
-                #{'You are missing some arguments for this operation:'.red}
+      puts <<~EOF
+        #{'Error: '.bold.yellow}
+        #{'You are missing some arguments for this operation:'.red}
 
-                #{'Correct Usage: '.bold.yellow}
-                #{method.to_s.bold.green} #{sig.join(' ').blue}
+        #{'Correct Usage: '.bold.yellow}
+        #{method.to_s.bold.green} #{sig.join(' ').blue}
 
       EOF
     end
 
     def process_flags_format
+      format = nil
       if argv.first&.start_with?('--')
         format = argv.shift.gsub(/^--/, '')
         if format =~ /^h(elp)?$/i
@@ -110,10 +104,13 @@ module DnsMadeEasy
     end
 
     def configure_authentication
-      credentials_file = ENV['DNSMADEEASY_CREDENTIALS_FILE'] || DnsMadeEasy::Credentials.default_credentials_path(user: Etc.getlogin)
+      credentials_file = ENV['DNSMADEEASY_CREDENTIALS_FILE'] ||
+        DnsMadeEasy::Credentials.default_credentials_path(user: Etc.getlogin)
+
       if ENV['DNSMADEEASY_API_KEY'] && ENV['DNSMADEEASY_API_SECRET']
         DnsMadeEasy.api_key = ENV['DNSMADEEASY_API_KEY']
         DnsMadeEasy.api_secret = ENV['DNSMADEEASY_API_SECRET']
+
       elsif credentials_file && ::File.exist?(credentials_file)
         keys = DnsMadeEasy::Credentials.keys_from_file(file: credentials_file)
         if keys
@@ -125,15 +122,14 @@ module DnsMadeEasy
       if DnsMadeEasy.api_key.nil?
         print_error('API Key/Secret was not detected or read from file')
         puts('You can also set two environment variables: ')
-        puts('  DNSMADEEASY_API_KEY and DNSMADEEASY_API_SECRET')
+        puts('    • DNSMADEEASY_API_KEY and ')
+        puts('    • DNSMADEEASY_API_SECRET')
         exit 123
       end
     end
 
     def print_usage_message
-      # rubocop:todo Naming/HeredocDelimiterNaming
       puts <<~EOF
-        # rubocop:enable Naming/HeredocDelimiterNaming
           #{'Usage:'.bold.yellow}
                 #{'# Execute an API call:'.dark}
                 #{"dme [ #{SUPPORTED_FORMATS.map { |f| "--#{f}" }.join(' | ')} ] operation [ arg1 arg2 ... ] ".bold.green}
@@ -146,38 +142,40 @@ module DnsMadeEasy
 
     def print_help_message
       print_usage_message
-
-      # rubocop:todo Naming/HeredocDelimiterNaming
       puts <<~EOF
-        # rubocop:enable Naming/HeredocDelimiterNaming
-          #{header 'Credentials'}
-            Store your credentials in a YAML file
-            #{DnsMadeEasy::Credentials.default_credentials_path(user: ENV['USER'])} as follows:
+        #{header 'Credentials'}
+          Store your credentials in a YAML file
+          #{DnsMadeEasy::Credentials.default_credentials_path(user: ENV['USER'])} as follows:
 
-            #{'credentials:
-              api_key: XXXX
-              api_secret: YYYY'.bold.magenta}
+          #{'credentials:
+            api_key: XXXX
+            api_secret: YYYY'.bold.magenta}
 
-            Or a multi-account version:
+          Or a multi-account version:
 
-            #{'accounts:
-              - name: production
-                credentials:
-                  api_key: XXXX
-                  api_secret: YYYY
-                  encryption_key: my_key
-              - name: development
-                default_account: true
-                credentials:
-                  api_key: ZZZZ
-                  api_secret: WWWW'.bold.magenta}
+          #{'accounts:
+            - name: production
+              credentials:
+                api_key: XXXX
+                api_secret: YYYY
+                encryption_key: my_key
+            - name: development
+              default_account: true
+              credentials:
+                api_key: ZZZZ
+                api_secret: WWWW'.bold.magenta}
 
-          #{header 'Examples:'}
-             #{'dme domain moo.com
-             dme --json domain moo.com
-             dme find_all moo.com A www
-             dme find_first moo.com CNAME vpn-west
-             dme --yaml find_first moo.com CNAME vpn-west'.green}
+        #{header 'Examples:'}
+           #{'dme domain moo.com
+           dme --json domain  moo.com
+
+           dme all            moo.com
+           dme find_all       moo.com A       www
+           dme find_first     moo.com CNAME   vpn-west
+           dme update_record  moo.com www  A  11.3.43.56
+           dme create_record  moo.com ftp  CNAME  www.moo.com.
+
+           dme --yaml find_first moo.com CNAME vpn-west'.green}
 
       EOF
       exit 1
@@ -188,17 +186,14 @@ module DnsMadeEasy
     end
 
     def print_supported_operations
-      # rubocop:todo Naming/HeredocDelimiterNaming
       puts <<~EOF
-        # rubocop:enable Naming/HeredocDelimiterNaming
-          #{header 'Actions:'}
-            Checkout the README and RubyDoc for the arguments to each operation,
-            which is basically a method on a DnsMadeEasy::Api::Client instance.
-            #{'http://www.rubydoc.info/gems/dnsmadeeasy/DnsMadeEasy/Api/Client'.blue.bold.underlined}
+        #{header 'Actions:'}
+          Checkout the README and RubyDoc for the arguments to each operation,
+          which is basically a method on a DnsMadeEasy::Api::Client instance.
+          #{'http://www.rubydoc.info/gems/dnsmadeeasy/DnsMadeEasy/Api/Client'.blue.bold.underlined}
 
-          #{header 'Valid Operations Are:'}
-            #{DnsMadeEasy::Api::Client.public_operations.join("\n  ").green.bold}
-
+        #{header 'Valid Operations Are:'}
+          #{DnsMadeEasy::Api::Client.public_operations.join("\n  ").green.bold}
       EOF
     end
 
@@ -220,10 +215,9 @@ module DnsMadeEasy
 
     # e.backtrack.first looks like this:
     # ..../dnsmadeeasy/lib/dnsmadeeasy/api/client.rb:143:in `create_a_record'
-    # rubocop:todo Naming/MethodParameterName
     def method_signature(e, method)
       file, line, call_method = e.backtrace.first.split(':')
-      call_method             = call_method.gsub(/[']/, '').split('`').last
+      call_method = call_method.gsub(/[']/, '').split('`').last
       if call_method && call_method.to_sym == method.to_sym
         source_line = File.open(file).to_a[line.to_i - 1].chomp!
         if source_line =~ /def #{method}/
@@ -236,7 +230,6 @@ module DnsMadeEasy
     rescue StandardError
       []
     end
-    # rubocop:enable Naming/MethodParameterName
 
     def puts(*args)
       super(*args)

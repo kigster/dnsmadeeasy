@@ -1,2 +1,7 @@
+# vim: ft=yaml
 inherit_from: .rubocop_todo.yml
+
+Naming/HeredocDelimiterNaming:
+  Enabled: false
+
 

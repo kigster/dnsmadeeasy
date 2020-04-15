@@ -34,7 +34,6 @@ Gem::Specification.new do |spec|
   spec.email         = %w(kigster@gmail.com letuboy@gmail.com hjhart@gmail.com)
   spec.summary       = DnsMadeEasy::DESCRIPTION
   spec.description   = DnsMadeEasy::DESCRIPTION
-  # rubocop:todo Naming/HeredocDelimiterNaming
   spec.post_install_message = <<~EOF
       Thank you for using the DnsMadeEasy ruby gem, the Ruby client
       API for DnsMadeEasy.com's SDK v2. Please note that this gem

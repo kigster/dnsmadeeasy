@@ -21,28 +21,7 @@ module DnsMadeEasy
         return nil if mash.nil?
 
         creds = if mash.accounts.is_a?(Array)
-                  account = if account
-                              mash.accounts.find { |a| a.name == account.to_s }
-                            elsif
-                              # rubocop:todo Layout/ConditionPosition
-                              mash.accounts.size == 1
-                              # rubocop:enable Layout/ConditionPosition
-                              mash.accounts.first
-                            else
-                              mash.accounts.find(&:default_account)
-                            end
-
-                  unless account
-                    raise DnsMadeEasy::APIKeyAndSecretMissingError,
-                          (account ? "account #{account} was not found" : 'default account does not exist')
-                  end
-
-                  unless account.credentials
-                    raise DnsMadeEasy::InvalidCredentialsFormatError,
-                          'Expected account entry to have "credentials" key'
-                  end
-
-                  account.credentials
+                  credentials_from_array(mash.accounts, account&.to_s)
 
                 elsif mash.credentials
                   mash.credentials
@@ -52,11 +31,11 @@ module DnsMadeEasy
                         'expected either "accounts" or "credentials" as the top-level key'
                 end
 
-        # rubocop:todo Style/MultilineTernaryOperator
-        creds ? ApiKeys.new(creds.api_key,
-                            creds.api_secret,
-                            encryption_key || creds.encryption_key) : nil
-        # rubocop:enable Style/MultilineTernaryOperator
+        return nil unless creds
+
+        ApiKeys.new creds.api_key,
+                    creds.api_secret,
+                    encryption_key || creds.encryption_key
       end
 
       def to_s
@@ -64,6 +43,28 @@ module DnsMadeEasy
       end
 
       private
+
+      def credentials_from_array(accounts, account_name = nil)
+        account = if account_name
+                    accounts.find { |a| a.name == account_name }
+                  elsif accounts.size == 1
+                    accounts.first
+                  else
+                    accounts.find(&:default_account)
+                  end
+
+        unless account
+          raise DnsMadeEasy::APIKeyAndSecretMissingError,
+                (account ? "account #{account} was not found" : 'Default account does not exist')
+        end
+
+        unless account.credentials
+          raise DnsMadeEasy::InvalidCredentialsFormatError,
+                'Expected an account entry to have the "credentials" key'
+        end
+
+        account.credentials
+      end
 
       def parse!
         self.mash = Hashie::Extensions::SymbolizeKeys.symbolize_keys(load_hash)

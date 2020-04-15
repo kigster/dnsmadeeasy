@@ -21,7 +21,7 @@ module DnsMadeEasy
   end
 end
 
-RSpec.describe DnsMadeEasy::Runner do # rubocop:todo Metrics/BlockLength
+RSpec.describe DnsMadeEasy::Runner do
   let(:runner) { described_class.new(argv) }
   subject { ::DnsMadeEasy::Output.lines }
 

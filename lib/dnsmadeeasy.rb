@@ -92,8 +92,6 @@ module DnsMadeEasy
     # Basically delegate it all to the Client instance
     # if the method call is supported.
     #
-    # rubocop:todo Style/MissingRespondToMissing
-    # rubocop:todo Style/MethodMissingSuper
     def method_missing(method, *args, &block)
       if client.respond_to?(method)
         client.send(method, *args, &block)
@@ -101,7 +99,5 @@ module DnsMadeEasy
         super(method, *args, &block)
       end
     end
-    # rubocop:enable Style/MethodMissingSuper
-    # rubocop:enable Style/MissingRespondToMissing
   end
 end

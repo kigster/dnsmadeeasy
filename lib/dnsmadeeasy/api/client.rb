@@ -169,17 +169,10 @@ module DnsMadeEasy
         options.merge!('priority' => priority, 'weight' => weight, 'port' => port)
         create_record domain_name, name, 'SRV', value, options
       end
-
-      # rubocop:todo Naming/MethodParameterName
-      # rubocop:todo Naming/VariableName
       def create_httpred_record(domain_name, name, value, redirectType = 'STANDARD - 302', description = '', keywords = '', title = '', options = {})
-        # rubocop:enable Naming/VariableName
-        # rubocop:todo Naming/VariableName
         options.merge!('redirectType' => redirectType, 'description' => description, 'keywords' => keywords, 'title' => title)
-        # rubocop:enable Naming/VariableName
         create_record domain_name, name, 'HTTPRED', value, options
       end
-      # rubocop:enable Naming/MethodParameterName
 
       def update_record(domain, record_id, name, type, value, options = {})
         body = { 'name' => name, 'type' => type, 'value' => value, 'ttl' => 3600, 'gtdLocation' => 'DEFAULT', 'id' => record_id }

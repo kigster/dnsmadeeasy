@@ -89,9 +89,9 @@ module DnsMadeEasy
 
       # @return String path to the default credentials file.
       def default_credentials_path(user: nil)
-        user ? # rubocop:todo Style/MultilineTernaryOperator
-          File.expand_path(Dir.home(user) + '/.dnsmadeeasy/credentials.yml').freeze :
-          File.expand_path('~/.dnsmadeeasy/credentials.yml').freeze
+        File.expand_path(
+          user ? Dir.home(user) + '/.dnsmadeeasy/credentials.yml' : '~/.dnsmadeeasy/credentials.yml'
+        )
       end
     end
   end
