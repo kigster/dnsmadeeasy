@@ -11,6 +11,7 @@
 ## Scope
 
 - Add `dns-zonefile`.
+- Add `dry-monads` and use `Dry::Monads::Result` for parser and validation service results.
 - Add parser adapter at the boundary.
 - Add `dme zone validate FILE`.
 - Convert parser output immediately into internal zone records.
@@ -18,6 +19,7 @@
 ## Implementation Notes
 
 - `aeden/dns-zonefile` is sufficient for v1 parsing of downloaded or standard RFC-style zone files.
+- Parser and validation workflows should return `Success(value)` / `Failure(errors)` rather than raising for expected user-input errors.
 - Do not leak `DNS::Zonefile::*` classes beyond the adapter.
 - Unsupported syntax should produce actionable validation errors.
 - `HTTPRED` is not represented in standard zone files and does not need parser support in v1.
