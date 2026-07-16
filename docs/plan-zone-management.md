@@ -43,6 +43,24 @@ The zone-management specification lives in `docs/spec-zone-management.md`.
 5. Keep zone parsing isolated behind an adapter so `DNS::Zonefile::*` classes do not leak through the implementation.
 6. Make `plan` the safety gate for `apply`.
 7. Keep deletion opt-in and out of the first implementation unless explicitly requested.
+8. Use `tty-spinner` for long-running groups of independent provider operations.
+
+## Parallel Provider Operations
+
+The gem includes `tty-spinner` for visual progress during multi-step provider work. Zone workflows should split independent API work into bounded chunks, execute those chunks with worker threads, and attach one `TTY::Spinner` to each active worker or chunk.
+
+Use `TTY::Spinner::Multi` for managing multiple concurrent thread progress indicators:
+https://github.com/piotrmurach/tty-spinner#5-ttyspinnermulti-api
+
+Rules:
+
+- Use bounded concurrency; do not start one unbounded thread per DNS record.
+- Only parallelize independent API calls.
+- Preserve deterministic final output by collecting results and sorting/rendering after workers finish.
+- Keep `plan` rendering deterministic and mostly non-animated; spinners belong to long-running `export` and `apply` execution paths.
+- Provide a no-op or fake spinner in specs so test output is stable.
+- Aggregate worker errors and report which chunk/action failed.
+- Avoid parallel delete behavior until destructive operations are explicitly enabled and tested.
 
 ## Zone File Compatibility and Normalization
 
@@ -111,6 +129,7 @@ Establish a clean Ruby 4 baseline before changing CLI architecture.
      - `dry-validation`
      - `dns-zonefile`
      - `tsort`, because `sym` warns that `tsort` will no longer be bundled by default in Ruby 4.1
+     - `tty-spinner`
    - Development:
      - `aruba`
 5. Run the current suite.
@@ -451,6 +470,7 @@ dme zone export DOMAIN [--output=FILE] [--ttl=300] [--include-apex-ns]
 4. Write to stdout by default.
 5. Write to file when `--output` is provided.
 6. Print warnings to stderr, not stdout, so stdout remains pipe-safe.
+7. Use threaded chunks and `TTY::Spinner` when export requires multiple independent provider calls.
 
 ### Acceptance Criteria
 
@@ -540,6 +560,7 @@ dme zone apply FILE [--domain=DOMAIN] [--yes] [--delete]
 4. Execute creates and updates through existing client methods.
 5. Execute deletes only when explicitly enabled.
 6. Print a final summary.
+7. Split independent API operations into bounded worker-thread chunks and display a `TTY::Spinner` for each active worker/chunk.
 
 ### Safety Rules
 
@@ -550,6 +571,8 @@ dme zone apply FILE [--domain=DOMAIN] [--yes] [--delete]
 - Consider ordering:
   - create replacement records before deleting old records where safe
   - avoid CNAME conflicts by detecting incompatible desired state before apply
+- Parallelize only independent actions after dependency/conflict checks.
+- Keep execution summaries deterministic even when worker completion order varies.
 
 ### Acceptance Criteria
 
@@ -557,6 +580,8 @@ dme zone apply FILE [--domain=DOMAIN] [--yes] [--delete]
 - `apply` can run against a mocked client in specs.
 - Confirmation is tested through Aruba.
 - Partial failures report completed and failed actions.
+- Threaded execution has specs for successful chunks and failed chunks.
+- Spinner behavior is covered through injected fake/no-op spinner objects.
 
 ## Phase 10: Documentation and Migration Notes
 

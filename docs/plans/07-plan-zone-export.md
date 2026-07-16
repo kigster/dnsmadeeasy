@@ -23,6 +23,12 @@
 - Emit warnings listing omitted `HTTPRED` records.
 - Write zone text to stdout by default.
 - Write warnings to stderr so stdout remains pipe-safe.
+- When export requires multiple independent provider calls, split work into bounded worker-thread chunks.
+- Use one `TTY::Spinner` per active worker/chunk for interactive progress.
+- Use `TTY::Spinner::Multi` for concurrent thread progress:
+  https://github.com/piotrmurach/tty-spinner#5-ttyspinnermulti-api
+- Collect worker results and render final zone output deterministically after all workers finish.
+- Inject a fake/no-op spinner in specs so output remains stable.
 
 ## Live Integration Note
 
@@ -38,6 +44,8 @@ Live specs must be gated by `DNSMADEEASY_LIVE_TESTS=1` or equivalent and must on
 - Add unit specs for remote adapter conversion.
 - Add Aruba specs for export using a mocked client.
 - Add specs proving `HTTPRED` is omitted and warning text is emitted.
+- Add specs for chunked parallel execution with deterministic result ordering.
+- Add specs for failed worker chunks and aggregated error reporting.
 - Add optional live integration specs marked/skipped unless explicitly enabled.
 - Use `subject(:records)`, `subject(:output)`, and `its(:warnings)` where the object model supports it.
 
@@ -45,4 +53,6 @@ Live specs must be gated by `DNSMADEEASY_LIVE_TESTS=1` or equivalent and must on
 
 - `dme zone export example.com` produces deterministic zone output with mocked data.
 - Provider metadata is not serialized.
+- Independent provider reads can run concurrently with bounded worker threads.
+- Progress is displayed with `TTY::Spinner` during interactive export work.
 - `bundle exec rspec` passes without live credentials.

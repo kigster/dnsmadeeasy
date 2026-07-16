@@ -5,6 +5,7 @@ require 'rspec'
 require 'rspec/its'
 require 'simplecov'
 require 'webmock/rspec'
+require 'aruba/rspec'
 
 SimpleCov.start
 
@@ -18,4 +19,11 @@ RSpec.configure do |config|
   config.expect_with :rspec do |c|
     c.syntax = :expect
   end
+
+  config.include Aruba::Api
+end
+
+Aruba.configure do |config|
+  config.command_launcher = :in_process
+  config.main_class = DnsMadeEasy::CLI::Launcher
 end

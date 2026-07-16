@@ -8,6 +8,7 @@ end
 require 'dnsmadeeasy/version'
 require 'dnsmadeeasy/credentials'
 require 'dnsmadeeasy/api/client'
+require 'dnsmadeeasy/cli/launcher'
 
 module DnsMadeEasy
   class Error < StandardError
