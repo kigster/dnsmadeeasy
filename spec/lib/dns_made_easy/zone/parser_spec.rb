@@ -13,6 +13,13 @@ RSpec.describe DnsMadeEasy::Zone::Parser do
 
       it { is_expected.to be_success }
 
+      describe 'zone file' do
+        subject(:zone_file) { result.value! }
+
+        its(:origin) { is_expected.to eq('example.com.') }
+        its(:ttl) { is_expected.to eq(300) }
+      end
+
       describe 'records' do
         subject(:records) { result.value!.records }
 

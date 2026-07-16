@@ -2,6 +2,7 @@
 
 require 'dns/zonefile'
 require 'dry/monads'
+require 'dnsmadeeasy/zone/file'
 require 'dnsmadeeasy/zone/record'
 require 'dnsmadeeasy/zone/record_set'
 
@@ -28,11 +29,11 @@ module DnsMadeEasy
       end
 
       def call
-        zone = DNS::Zonefile.load(zone_text)
+        zone = DNS::Zonefile.load(parseable_zone_text)
         records, errors = build_records(zone)
         return Failure(errors) if errors.any?
 
-        Success(RecordSet.new(records: records))
+        Success(File.new(origin: zone_origin(zone), ttl: zone_ttl(zone), record_set: RecordSet.new(records: records)))
       rescue DNS::Zonefile::ParsingError, DNS::Zonefile::UnknownRecordType, Dry::Struct::Error => e
         Failure([e.message])
       end
@@ -40,6 +41,27 @@ module DnsMadeEasy
       private
 
       attr_reader :zone_text
+
+      def parseable_zone_text
+        return zone_text if zone_text.match?(/\bSOA\b/)
+
+        zone_lines = zone_text.lines
+        insertion_index = zone_lines.index { |line| !line.strip.start_with?('$') && !line.strip.empty? } || zone_lines.length
+        zone_lines.insert(insertion_index, synthetic_soa_line)
+        zone_lines.join
+      end
+
+      def synthetic_soa_line
+        "@ IN SOA ns.#{origin_from_text} hostmaster.#{origin_from_text} ( 1 1d 1d 4W #{ttl_from_text} )\n"
+      end
+
+      def origin_from_text
+        zone_text[/^\$ORIGIN\s+(\S+)/, 1] || 'example.invalid.'
+      end
+
+      def ttl_from_text
+        zone_text[/^\$TTL\s+(\d+)/, 1] || 300
+      end
 
       def build_records(zone)
         origin = zone_origin(zone)
@@ -57,6 +79,10 @@ module DnsMadeEasy
 
       def zone_origin(zone)
         zone.soa&.origin || '.'
+      end
+
+      def zone_ttl(zone)
+        zone.soa&.ttl || 300
       end
 
       def build_record(provider_record, record_type, origin)
