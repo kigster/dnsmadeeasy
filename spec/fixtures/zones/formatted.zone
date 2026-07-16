@@ -1,0 +1,9 @@
+$ORIGIN example.com.
+$TTL 300
+
+@        IN A       203.0.113.10
+www      IN CNAME   @
+
+@        IN MX      10 mail.example.com.
+
+@        IN TXT     "v=spf1 include:_spf.google.com ~all"
