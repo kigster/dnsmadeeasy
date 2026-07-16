@@ -13,7 +13,7 @@ module DnsMadeEasy
     class Client
       class << self
         def public_operations
-          (new('a', 'b').methods - Object.methods).map(&:to_s).reject { |r| r =~ /[=]$|^(api_|on_|request)/ }.sort
+          (new('a', 'b').methods - Object.methods).map(&:to_s).reject { |r| r =~ /=$|^(api_|on_|request)/ }.sort
         end
       end
 
@@ -24,8 +24,8 @@ module DnsMadeEasy
                   :api_secret
 
       def initialize(api_key, api_secret, sandbox = false, options = {})
-        fail 'api_key is undefined' unless api_key
-        fail 'api_secret is undefined' unless api_secret
+        raise 'api_key is undefined' unless api_key
+        raise 'api_secret is undefined' unless api_secret
 
         @api_key            = api_key
         @api_secret         = api_secret
@@ -36,12 +36,12 @@ module DnsMadeEasy
         sandbox ? on_sandbox : on_production
       end
 
-      def on_sandbox(&block)
-        with_url(::DnsMadeEasy::API_BASE_URL_SANDBOX, &block)
+      def on_sandbox(&)
+        with_url(::DnsMadeEasy::API_BASE_URL_SANDBOX, &)
       end
 
-      def on_production(&block)
-        with_url(::DnsMadeEasy::API_BASE_URL_PRODUCTION, &block)
+      def on_production(&)
+        with_url(::DnsMadeEasy::API_BASE_URL_PRODUCTION, &)
       end
 
       # -----------------------------------
@@ -127,55 +127,59 @@ module DnsMadeEasy
 
       def create_a_record(domain_name, name, value, options = {})
         # TODO: match IPv4 for value
-        create_record domain_name, name, 'A', value, options
+        create_record domain_name, name, 'A', value, **options
       end
 
       def create_aaaa_record(domain_name, name, value, options = {})
         # TODO: match IPv6 for value
-        create_record domain_name, name, 'AAAA', value, options
+        create_record domain_name, name, 'AAAA', value, **options
       end
 
       def create_ptr_record(domain_name, name, value, options = {})
         # TODO: match PTR value
-        create_record domain_name, name, 'PTR', value, options
+        create_record domain_name, name, 'PTR', value, **options
       end
 
       def create_txt_record(domain_name, name, value, options = {})
         # TODO: match TXT value
-        create_record domain_name, name, 'TXT', value, options
+        create_record domain_name, name, 'TXT', value, **options
       end
 
       def create_cname_record(domain_name, name, value, options = {})
         # TODO: match CNAME value
-        create_record domain_name, name, 'CNAME', value, options
+        create_record domain_name, name, 'CNAME', value, **options
       end
 
       def create_ns_record(domain_name, name, value, options = {})
         # TODO: match domainname for value
-        create_record domain_name, name, 'NS', value, options
+        create_record domain_name, name, 'NS', value, **options
       end
 
       def create_spf_record(domain_name, name, value, options = {})
-        create_record domain_name, name, 'SPF', value, options
+        create_record domain_name, name, 'SPF', value, **options
       end
 
       def create_mx_record(domain_name, name, priority, value, options = {})
         options.merge!('mxLevel' => priority)
 
-        create_record domain_name, name, 'MX', value, options
+        create_record domain_name, name, 'MX', value, **options
       end
 
       def create_srv_record(domain_name, name, priority, weight, port, value, options = {})
         options.merge!('priority' => priority, 'weight' => weight, 'port' => port)
-        create_record domain_name, name, 'SRV', value, options
+        create_record domain_name, name, 'SRV', value, **options
       end
-      def create_httpred_record(domain_name, name, value, redirectType = 'STANDARD - 302', description = '', keywords = '', title = '', options = {})
-        options.merge!('redirectType' => redirectType, 'description' => description, 'keywords' => keywords, 'title' => title)
-        create_record domain_name, name, 'HTTPRED', value, options
+
+      def create_httpred_record(domain_name, name, value, redirectType = 'STANDARD - 302', description = '',
+                                keywords = '', title = '', options = {})
+        options.merge!('redirectType' => redirectType, 'description' => description, 'keywords' => keywords,
+                       'title' => title)
+        create_record domain_name, name, 'HTTPRED', value, **options
       end
 
       def update_record(domain, record_id, name, type, value, options = {})
-        body = { 'name' => name, 'type' => type, 'value' => value, 'ttl' => 3600, 'gtdLocation' => 'DEFAULT', 'id' => record_id }
+        body = { 'name' => name, 'type' => type, 'value' => value, 'ttl' => 3600, 'gtdLocation' => 'DEFAULT',
+                 'id' => record_id }
         put "/dns/managed/#{get_id_by_domain(domain)}/records/#{record_id}/", body.merge(options)
       end
 
@@ -314,12 +318,10 @@ module DnsMadeEasy
         process_rate_limits(response)
         unparsed_json = response.body.to_s.empty? ? '{}' : response.body
         Hashie::Mash.new(JSON.parse(unparsed_json))
-      rescue Net::HTTPServerException => e
-        if e.message =~ /403.*forbidden/i
-          raise ::DnsMadeEasy::AuthenticationError, e
-        else
-          raise e
-        end
+      rescue Net::HTTPClientException => e
+        raise ::DnsMadeEasy::AuthenticationError, e if e.message =~ /403.*forbidden/i
+
+        raise e
       end
 
       def process_rate_limits(response)

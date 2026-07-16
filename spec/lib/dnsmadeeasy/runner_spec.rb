@@ -10,6 +10,7 @@ module DnsMadeEasy
     @exits = []
     class << self
       extend Forwardable
+
       def_delegators :@lines, :size, :empty?, :<<, :clear, :to_s
       attr_reader :lines, :exits
 
@@ -23,21 +24,21 @@ end
 
 RSpec.describe DnsMadeEasy::Runner do
   let(:runner) { described_class.new(argv) }
-  subject { ::DnsMadeEasy::Output.lines }
+  subject { DnsMadeEasy::Output.lines }
 
   before do
     allow(ENV).to receive(:[]).with('DNSMADEEASY_API_KEY').and_return('123')
     allow(ENV).to receive(:[]).with('DNSMADEEASY_API_SECRET').and_return('123')
     allow(ENV).to receive(:[]).with('DNSMADEEASY_CREDENTIALS_FILE').and_call_original
     allow(ENV).to receive(:[]).with('USER').and_call_original
-    ::DnsMadeEasy::Runner.send(:define_method, :puts) do |*args|
-      ::DnsMadeEasy::Output.lines << args
+    DnsMadeEasy::Runner.send(:define_method, :puts) do |*args|
+      DnsMadeEasy::Output.lines << args
     end
-    ::DnsMadeEasy::Runner.send(:define_method, :exit) do |*args|
-      ::DnsMadeEasy::Output.exits << args.first
+    DnsMadeEasy::Runner.send(:define_method, :exit) do |*args|
+      DnsMadeEasy::Output.exits << args.first
     end
 
-    ::DnsMadeEasy::Output.clear
+    DnsMadeEasy::Output.clear
     runner.execute!
   end
 
@@ -47,7 +48,7 @@ RSpec.describe DnsMadeEasy::Runner do
     it { is_expected.to_not be_empty }
 
     its(:size) { should be > 5 }
-    its(:to_s) { should match /Usage/ }
+    its(:to_s) { should match(/Usage/) }
   end
 
   describe 'operations' do
@@ -55,7 +56,6 @@ RSpec.describe DnsMadeEasy::Runner do
 
     it { is_expected.to_not be_empty }
     its(:size) { should > 2 }
-    its(:to_s) { should match /records_for/ }
-
+    its(:to_s) { should match(/records_for/) }
   end
 end

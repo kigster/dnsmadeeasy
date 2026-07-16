@@ -23,12 +23,16 @@ module DnsMadeEasy
           its(:api_secret) { should eq real_secret }
           its(:to_s) { should match Digest::SHA256.hexdigest(real_key) }
           its(:to_s) { should match Digest::SHA256.hexdigest(real_secret) }
-          its(:to_s) { should match /^<DnsMadeEasy::Credentials::ApiKey/ }
+          its(:to_s) { should match(/^<DnsMadeEasy::Credentials::ApiKey/) }
         end
 
         context 'encrypted key' do
-          let(:key) { 'BAhTOh1TeW06OkRhdGE6OldyYXBwZXJTdHJ1Y3QLOhNlbmNyeXB0ZWRfZGF0YSJVCLXPOvZ11uKhIpdtirf1epE8SkIsAhhFJCe82PdWyCgj-egHpMS8HT99KOb77bAaR92oZyw9P_IJT4cSm1eMMF-lMe3s3R8zcgyszhQekl86B2l2IhW-7YdcTPHDknka75PEJtgvOhBjaXBoZXJfbmFtZSIQQUVTLTI1Ni1DQkM6CXNhbHQwOgx2ZXJzaW9uaQY6DWNvbXByZXNzVA==' }
-          let(:secret) { 'BAhTOh1TeW06OkRhdGE6OldyYXBwZXJTdHJ1Y3QLOhNlbmNyeXB0ZWRfZGF0YSJVHE1D3mpTsUseEdm3NWox7xdeQExobVx3-dHnEJoK9XYXawoPvtgroxOhsaYxZtxz_ZeHtSDZwu0eyDVyZ-XDo-vxalo9cQ2FOm05hVQaebo6B2l2IhVosiRfW5FnRK4BxfwPytLcOhBjaXBoZXJfbmFtZSIQQUVTLTI1Ni1DQkM6CXNhbHQwOgx2ZXJzaW9uaQY6DWNvbXByZXNzVA==' }
+          let(:key) do
+            'BAhTOh1TeW06OkRhdGE6OldyYXBwZXJTdHJ1Y3QLOhNlbmNyeXB0ZWRfZGF0YSJVCLXPOvZ11uKhIpdtirf1epE8SkIsAhhFJCe82PdWyCgj-egHpMS8HT99KOb77bAaR92oZyw9P_IJT4cSm1eMMF-lMe3s3R8zcgyszhQekl86B2l2IhW-7YdcTPHDknka75PEJtgvOhBjaXBoZXJfbmFtZSIQQUVTLTI1Ni1DQkM6CXNhbHQwOgx2ZXJzaW9uaQY6DWNvbXByZXNzVA=='
+          end
+          let(:secret) do
+            'BAhTOh1TeW06OkRhdGE6OldyYXBwZXJTdHJ1Y3QLOhNlbmNyeXB0ZWRfZGF0YSJVHE1D3mpTsUseEdm3NWox7xdeQExobVx3-dHnEJoK9XYXawoPvtgroxOhsaYxZtxz_ZeHtSDZwu0eyDVyZ-XDo-vxalo9cQ2FOm05hVQaebo6B2l2IhVosiRfW5FnRK4BxfwPytLcOhBjaXBoZXJfbmFtZSIQQUVTLTI1Ni1DQkM6CXNhbHQwOgx2ZXJzaW9uaQY6DWNvbXByZXNzVA=='
+          end
           it 'should raise error without encryption key' do
             expect { subject }.to raise_error(InvalidCredentialKeys)
           end

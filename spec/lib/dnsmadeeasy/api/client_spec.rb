@@ -246,7 +246,8 @@ RSpec.describe DnsMadeEasy::Api::Client do
 
     it 'creates a record' do
       stub_request(:post, api_domain + '/dns/managed/123/records/')
-        .with(headers: request_headers, body: { 'name' => 'test', 'type' => 'A', 'value' => '192.168.1.1', 'ttl' => 3600, 'gtdLocation' => 'DEFAULT' }.to_json)
+        .with(headers: request_headers, body: { 'name' => 'test', 'type' => 'A', 'value' => '192.168.1.1',
+                                                'ttl' => 3600, 'gtdLocation' => 'DEFAULT' }.to_json)
         .to_return(status: 200, body: response, headers: {})
 
       expect(subject.create_record(domain_name, 'test', 'A', '192.168.1.1')).to eq({})
@@ -262,7 +263,7 @@ RSpec.describe DnsMadeEasy::Api::Client do
         expect(subject).to receive(:create_record).with(user_domain,
                                                         'smellyface',
                                                         upper_record_type,
-                                                        '192.168.1.1', {}).and_return({})
+                                                        '192.168.1.1').and_return({})
         expect(subject.send(method_name, user_domain,
                             'smellyface', '192.168.1.1')).to eq({})
       end
@@ -271,7 +272,8 @@ RSpec.describe DnsMadeEasy::Api::Client do
 
   describe '#create_mx_record' do
     it 'creates an mx record' do
-      expect(subject).to receive(:create_record).with(user_domain, 'mail', 'MX', '192.168.1.1', 'mxLevel' => 50).and_return({})
+      expect(subject).to receive(:create_record).with(user_domain, 'mail', 'MX', '192.168.1.1',
+                                                      'mxLevel' => 50).and_return({})
       expect(subject.create_mx_record(user_domain, 'mail', 50, '192.168.1.1')).to eq({})
     end
   end
@@ -394,7 +396,7 @@ RSpec.describe DnsMadeEasy::Api::Client do
     let(:domain_id) { 123 }
 
     it 'returns the domain' do
-      stub_request(:get, api_domain + "/dns/secondary/#{domain_id}" )
+      stub_request(:get, api_domain + "/dns/secondary/#{domain_id}")
         .with(headers: request_headers)
         .to_return(status: 200, body: response, headers: {})
 
@@ -439,17 +441,17 @@ RSpec.describe DnsMadeEasy::Api::Client do
   end
 
   describe '#get_id_by_secondary_domain' do
-    let(:response) {
+    let(:response) do
       {
         data: [
           {
             ipSetId: 11_341,
             name: user_domain,
             id: 123
-          },
-        ],
+          }
+        ]
       }.to_json
-    }
+    end
 
     before do
       expect(subject).to receive(:secondary_domains).and_return(JSON.parse(response))
@@ -460,9 +462,9 @@ RSpec.describe DnsMadeEasy::Api::Client do
     end
 
     it 'raises if no domain is found' do
-      expect {
+      expect do
         subject.get_id_by_secondary_domain('non-existing-domain')
-      }.to raise_error(DnsMadeEasy::NoDomainError)
+      end.to raise_error(DnsMadeEasy::NoDomainError)
     end
   end
 
@@ -499,7 +501,7 @@ RSpec.describe DnsMadeEasy::Api::Client do
     let(:ip_set_id) { 123 }
 
     it 'returns ip_set' do
-      stub_request(:get, api_domain + "/dns/secondary/ipSet/#{ip_set_id}" )
+      stub_request(:get, api_domain + "/dns/secondary/ipSet/#{ip_set_id}")
         .with(headers: request_headers)
         .to_return(status: 200, body: response, headers: {})
 
@@ -513,7 +515,7 @@ RSpec.describe DnsMadeEasy::Api::Client do
     let(:name) { 'ip-set-name' }
 
     it 'creates ip_set' do
-      stub_request(:post, api_domain + "/dns/secondary/ipSet")
+      stub_request(:post, api_domain + '/dns/secondary/ipSet')
         .with(headers: request_headers, body: { name: name, ips: ips }.to_json)
         .to_return(status: 200, body: response, headers: {})
 
@@ -576,7 +578,7 @@ RSpec.describe DnsMadeEasy::Api::Client do
       let(:body) { "<xml> JSON.parse won't like this very much </xml>" }
 
       it 'raises a Net::HTTPServerException instead of a JSON::ParserError' do
-        expect { response }.to raise_exception(Net::HTTPServerException)
+        expect { response }.to raise_exception(Net::HTTPClientException)
       end
     end
   end
@@ -587,7 +589,7 @@ RSpec.describe DnsMadeEasy::Api::Client do
 
     context 'with a 403 response' do
       before do
-        expect(response).to receive(:value).and_raise(::Net::HTTPServerException.new(message, response))
+        expect(response).to receive(:value).and_raise(Net::HTTPClientException.new(message, response))
       end
 
       it 'raises a AuthenticationError' do

@@ -11,15 +11,13 @@ module DnsMadeEasy
       before { ENV['DME_KEY'] = encryption_key }
 
       subject(:yaml_file) { described_class.new(file: file) }
-      let(:hash) {
+      let(:hash) do
         Hashie::Mash.new(
           Hashie::Extensions::SymbolizeKeys.symbolize_keys(
-            ::YAML.safe_load(
-              ::File.read(file)
-            )
+            ::YAML.safe_load_file(file)
           )
         )
-      }
+      end
 
       let(:key) { '12345678-a8f8-4466-ffff-2324aaaa9098' }
       let(:secret) { '43009899-abcc-ffcc-eeee-09f809808098' }
@@ -103,10 +101,10 @@ module DnsMadeEasy
             end
 
             context 'and we do pass it in' do
-              subject(:keys) {
+              subject(:keys) do
                 yaml_file.keys(account: 'preview',
                                encryption_key: encryption_key)
-              }
+              end
               context 'as a pathname' do
                 let(:encryption_key) { 'spec/fixtures/sym.key' }
                 it { is_expected.to eql(expected_keys) }
