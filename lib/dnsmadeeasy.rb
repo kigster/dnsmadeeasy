@@ -10,21 +10,28 @@ require 'dnsmadeeasy/credentials'
 require 'dnsmadeeasy/api/client'
 
 module DnsMadeEasy
-  class Error < StandardError;
+  class Error < StandardError
   end
-  class AuthenticationError < Error;
+
+  class AuthenticationError < Error
   end
-  class APIKeyAndSecretMissingError < Error;
+
+  class APIKeyAndSecretMissingError < Error
   end
-  class InvalidCredentialKeys < Error;
+
+  class InvalidCredentialKeys < Error
   end
-  class AbstractMethodError < Error;
+
+  class AbstractMethodError < Error
   end
-  class InvalidCredentialsFormatError < Error;
+
+  class InvalidCredentialsFormatError < Error
   end
-  class NoSuchAccountError < Error;
+
+  class NoSuchAccountError < Error
   end
-  class NoDomainError < Error;
+
+  class NoDomainError < Error
   end
 
   class << self
@@ -38,26 +45,22 @@ module DnsMadeEasy
     def configure_from_file(file = nil,
                             account = nil,
                             encryption_key = nil)
-
       credentials = ::DnsMadeEasy::Credentials.keys_from_file(
-        file: file || ::DnsMadeEasy::Credentials.default_credentials_path(user: ENV['USER']),
+        file: file || ::DnsMadeEasy::Credentials.default_credentials_path(user: ENV.fetch('USER', nil)),
         account: account,
         encryption_key: encryption_key
       )
-      if credentials
-        configure do |config|
-          config.api_key    = credentials.api_key
-          config.api_secret = credentials.api_secret
-        end
-      else
-        raise APIKeyAndSecretMissingError, "Unable to load valid api keys from #{file}!"
+      raise APIKeyAndSecretMissingError, "Unable to load valid api keys from #{file}!" unless credentials
+
+      configure do |config|
+        config.api_key    = credentials.api_key
+        config.api_secret = credentials.api_secret
       end
     end
 
     def credentials_from_file(file: DnsMadeEasy::Credentials.default_credentials_path,
                               account: nil,
                               encryption_key: nil)
-
       DnsMadeEasy::Credentials.keys_from_file file: file,
                                               account: account,
                                               encryption_key: encryption_key
@@ -71,33 +74,39 @@ module DnsMadeEasy
       self.default_api_secret = value
     end
 
-    def client(**options)
-      @client ||= create_client(false, **options)
+    def client(**)
+      @client ||= create_client(false, **)
     end
 
-    def sandbox_client(**options)
-      @sandbox_client ||= create_client(true, **options)
+    def sandbox_client(**)
+      @sandbox_client ||= create_client(true, **)
     end
 
     def create_client(sandbox = false,
                       api_key: default_api_key,
                       api_secret: default_api_secret,
 
-                      **options)
+                      **)
       raise APIKeyAndSecretMissingError, 'Please set #api_key and #api_secret' unless api_key && api_secret
 
-      ::DnsMadeEasy::Api::Client.new(api_key, api_secret, sandbox, **options)
+      ::DnsMadeEasy::Api::Client.new(api_key, api_secret, sandbox, **)
     end
 
     # Basically delegate it all to the Client instance
     # if the method call is supported.
     #
-    def method_missing(method, *args, &block)
+    def method_missing(method, ...)
       if client.respond_to?(method)
-        client.send(method, *args, &block)
+        client.send(method, ...)
       else
-        super(method, *args, &block)
+        super
       end
+    end
+
+    def respond_to_missing?(method, include_private = false)
+      client.respond_to?(method, include_private) || super
+    rescue APIKeyAndSecretMissingError
+      super
     end
   end
 end

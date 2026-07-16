@@ -13,17 +13,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
-    - name: Set up Ruby 2.7
-      uses: actions/setup-ruby@v1
+    - name: Set up Ruby 4.0
+      uses: ruby/setup-ruby@v1
       with:
-        ruby-version: 2.7.x
-
-    - name: Install dependencies
-      run: |
-        gem install bundler
-        bundle install --jobs 4 --retry 3
+        ruby-version: '4.0'
+        bundler-cache: true
 
     - name: Run all specs
       run: |
@@ -32,5 +28,4 @@ jobs:
     - name: Run Rubocop
       run: |
         bundle exec rubocop
-
 

@@ -18,6 +18,12 @@ module DnsMadeEasy
     let(:api_key) { '12345678-a8f8-4466-ffff-2324aaaa9098' }
     let(:api_secret) { '43009899-abcc-ffcc-eeee-09f809808098' }
 
+    describe 'version' do
+      subject(:version) { described_class::VERSION }
+
+      it { is_expected.to eq('1.0.0') }
+    end
+
     context 'real client' do
       subject(:client) { described_class.client }
 

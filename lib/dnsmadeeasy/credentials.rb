@@ -82,7 +82,6 @@ module DnsMadeEasy
       def keys_from_file(file: default_credentials_path,
                          account: nil,
                          encryption_key: nil)
-
         YamlFile.new(file: file).keys(account: account,
                                       encryption_key: encryption_key)
       end

@@ -11,7 +11,7 @@ require 'etc'
 
 module DnsMadeEasy
   class Runner
-    SUPPORTED_FORMATS = %w(json json_pretty yaml pp).freeze
+    SUPPORTED_FORMATS = %w[json json_pretty yaml pp].freeze
     SUPPORTED_FORMAT_FLAGS = SUPPORTED_FORMATS.map { |f| "--#{f}" }.freeze
 
     attr_accessor :format, :argv, :operation
@@ -47,16 +47,16 @@ module DnsMadeEasy
       end
       0
     rescue ArgumentError => e
-      STDERR.puts(e.backtrace.join("\n").yellow)
+      warn(e.backtrace.join("\n").yellow)
       sig = method_signature(e, method)
       print_signature(method, sig) if sig.shift == method.to_s
       print_error('Action', method.to_s.bold.yellow.to_s, 'has generated an error'.red, exception: e)
       1
-    rescue NoMethodError => e
+    rescue NoMethodError
       print_error('Action', method.to_s.bold.yellow.to_s, 'is not valid.'.red)
       puts 'HINT: try running ' + 'dme operations'.bold.green + ' to see the list of valid operations.'
       2
-    rescue Net::HTTPServerException => e
+    rescue Net::HTTPClientException => e
       print_error(exception: e)
       3
     end
@@ -68,11 +68,11 @@ module DnsMadeEasy
         EOF
       end
 
-      if exception
-        puts <<~EOF
-          #{'Exception: '.bold.red}#{exception.inspect.red}
-        EOF
-      end
+      return unless exception
+
+      puts <<~EOF
+        #{'Exception: '.bold.red}#{exception.inspect.red}
+      EOF
     end
 
     def print_signature(method, sig)
@@ -108,7 +108,7 @@ module DnsMadeEasy
 
     def configure_authentication
       credentials_file = ENV['DNSMADEEASY_CREDENTIALS_FILE'] ||
-        DnsMadeEasy::Credentials.default_credentials_path(user: Etc.getlogin)
+                         DnsMadeEasy::Credentials.default_credentials_path(user: Etc.getlogin)
 
       if ENV['DNSMADEEASY_API_KEY'] && ENV['DNSMADEEASY_API_SECRET']
         DnsMadeEasy.api_key = ENV['DNSMADEEASY_API_KEY']
@@ -122,13 +122,13 @@ module DnsMadeEasy
         end
       end
 
-      if DnsMadeEasy.api_key.nil?
-        print_error('API Key/Secret was not detected or read from file')
-        puts('You can also set two environment variables: ')
-        puts('    • DNSMADEEASY_API_KEY and ')
-        puts('    • DNSMADEEASY_API_SECRET')
-        exit 123
-      end
+      return unless DnsMadeEasy.api_key.nil?
+
+      print_error('API Key/Secret was not detected or read from file')
+      puts('You can also set two environment variables: ')
+      puts('    • DNSMADEEASY_API_KEY and ')
+      puts('    • DNSMADEEASY_API_SECRET')
+      exit 123
     end
 
     def print_usage_message
@@ -147,7 +147,7 @@ module DnsMadeEasy
       puts <<~EOF
 
         #{header 'Credentials'}
-          Store your credentials in a YAML file #{DnsMadeEasy::Credentials.default_credentials_path(user: ENV['USER']).blue}
+          Store your credentials in a YAML file #{DnsMadeEasy::Credentials.default_credentials_path(user: ENV.fetch('USER', nil)).blue}
           as follows:
 
             #{'# ~/.dnsmadeeasy/credentials.yml'.bold.black}
@@ -216,7 +216,7 @@ module DnsMadeEasy
           require 'pp'
           pp result
         else
-          m = "to_#{format}".to_sym
+          m = :"to_#{format}"
           puts result.send(m) if result.respond_to?(m)
         end
       else
@@ -228,13 +228,13 @@ module DnsMadeEasy
     # ..../dnsmadeeasy/lib/dnsmadeeasy/api/client.rb:143:in `create_a_record'
     def method_signature(e, method)
       file, line, call_method = e.backtrace.first.split(':')
-      call_method = call_method.gsub(/[']/, '').split('`').last
+      call_method = call_method.gsub('\'', '').split('`').last
       if call_method && call_method.to_sym == method.to_sym
         source_line = File.open(file).to_a[line.to_i - 1].chomp!
         if source_line =~ /def #{method}/
-          signature = source_line.strip.gsub(/,/, '').split(/[ ()]/)
+          signature = source_line.strip.gsub(',', '').split(/[ ()]/)
           signature.shift # remove def
-          return signature.reject { |a| a =~ /^([={}\)\(])*$/ }
+          return signature.reject { |a| a =~ /^([={})(])*$/ }
         end
       end
       []
@@ -242,8 +242,8 @@ module DnsMadeEasy
       []
     end
 
-    def puts(*args)
-      super(*args)
+    def puts(*)
+      super
     end
   end
 end

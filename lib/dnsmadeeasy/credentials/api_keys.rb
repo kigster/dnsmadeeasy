@@ -13,7 +13,7 @@ module DnsMadeEasy
     # Immutable instance with key and secret.
     #
     class ApiKeys
-      API_KEY_REGEX = /^([0-9a-f]{8})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{12})$/.freeze
+      API_KEY_REGEX = /^([0-9a-f]{8})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{12})$/
 
       attr_reader :api_key,
                   :api_secret,
@@ -24,7 +24,7 @@ module DnsMadeEasy
       include Sym
 
       def initialize(key, secret, encryption_key = nil, default: false, account: nil)
-        raise InvalidCredentialKeys, "Key and Secret can not be nil" if key.nil? || secret.nil?
+        raise InvalidCredentialKeys, 'Key and Secret can not be nil' if key.nil? || secret.nil?
 
         @default = default
         @account = account
@@ -38,17 +38,19 @@ module DnsMadeEasy
           @api_secret = secret
         end
 
-        raise InvalidCredentialKeys, "Key [#{api_key}] or Secret [#{api_secret}] has failed validation for its format" unless valid?
+        return if valid?
+
+        raise InvalidCredentialKeys,
+              "Key [#{api_key}] or Secret [#{api_secret}] has failed validation for its format"
       end
 
       def sym_resolve(encryption_key)
         null_output = ::File.open('/dev/null', 'w')
-        result = Sym::Application.new({ cache_passwords: true, key: encryption_key }, $stdin, null_output, null_output).execute
-        if result.is_a?(Hash)
-          raise InvalidCredentialKeys, "Unable to decrypt the data, error is: #{result[:exception]}"
-        else
-          result
-        end
+        result = Sym::Application.new({ cache_passwords: true, key: encryption_key }, $stdin, null_output,
+                                      null_output).execute
+        raise InvalidCredentialKeys, "Unable to decrypt the data, error is: #{result[:exception]}" if result.is_a?(Hash)
+
+        result
       end
 
       def to_s
