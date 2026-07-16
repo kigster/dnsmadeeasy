@@ -11,6 +11,7 @@
 ## Scope
 
 - Add `dry-cli`.
+- Include `tty-spinner` as a runtime dependency for later threaded zone export/apply progress reporting.
 - Add a `DnsMadeEasy::CLI::Commands` registry.
 - Add `DnsMadeEasy::CLI::Launcher`.
 - Add `DnsMadeEasy::CLI::Commands::Base`.

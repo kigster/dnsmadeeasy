@@ -5,8 +5,8 @@ source 'https://rubygems.org'
 # Specify your gem's dependencies in dnsmadeeasy.gemspec
 gemspec
 
+gem 'aruba'
 gem 'rspec'
 gem 'rspec-its'
-gem 'aruba'
 gem 'rubocop'
 gem 'rubocop-rspec'
