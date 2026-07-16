@@ -19,12 +19,26 @@ module DnsMadeEasy
       end
 
       def execute!
+        return print_account_operation_help if account_operation_help?
+
         command.call(arguments: argv, out: stdout, err: stderr)
       rescue SystemExit => e
         e.status
+      rescue StandardError => e
+        stderr.puts(e.message)
+        1
       end
 
       private
+
+      def account_operation_help?
+        argv.first == 'account' && argv[1] && !argv[1].start_with?('-') && argv.intersect?(%w[--help -h])
+      end
+
+      def print_account_operation_help
+        stdout.puts Commands::Account.operation_help(argv[1])
+        0
+      end
 
       def command
         @command ||= Dry::CLI.new(Commands)

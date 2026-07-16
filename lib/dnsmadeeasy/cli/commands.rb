@@ -10,5 +10,8 @@ module DnsMadeEasy
   end
 end
 
+require 'dnsmadeeasy/cli/message_helpers'
 require 'dnsmadeeasy/cli/commands/base'
 require 'dnsmadeeasy/cli/commands/version'
+require 'dnsmadeeasy/cli/commands/account'
+require 'dnsmadeeasy/cli/commands/legacy_operation'
