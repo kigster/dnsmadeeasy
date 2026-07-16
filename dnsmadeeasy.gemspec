@@ -70,6 +70,8 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'awesome_print'
   spec.add_dependency 'colored2'
   spec.add_dependency 'dry-cli'
+  spec.add_dependency 'dry-struct'
+  spec.add_dependency 'dry-types'
   spec.add_dependency 'hashie'
   spec.add_dependency 'sym'
   spec.add_dependency 'tsort'

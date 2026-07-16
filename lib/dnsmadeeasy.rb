@@ -6,9 +6,13 @@ module DnsMadeEasy
 end
 
 require 'dnsmadeeasy/version'
+require 'dnsmadeeasy/types'
 require 'dnsmadeeasy/credentials'
 require 'dnsmadeeasy/api/client'
 require 'dnsmadeeasy/cli/launcher'
+require 'dnsmadeeasy/zone/record'
+require 'dnsmadeeasy/zone/provider_record'
+require 'dnsmadeeasy/zone/record_set'
 
 module DnsMadeEasy
   class Error < StandardError
