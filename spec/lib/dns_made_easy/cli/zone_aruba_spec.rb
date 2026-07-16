@@ -20,7 +20,6 @@ RSpec.describe 'dme zone', type: :aruba do
       records_for: {
         'data' => [
           { 'id' => 1, 'name' => '', 'type' => 'A', 'value' => '203.0.113.10', 'ttl' => 300 },
-          { 'id' => 2, 'name' => 'www', 'type' => 'CNAME', 'value' => '@', 'ttl' => 300 },
           { 'id' => 3, 'name' => '', 'type' => 'MX', 'value' => 'mail.example.com.', 'mxLevel' => 10, 'ttl' => 300 },
           { 'id' => 4, 'name' => '', 'type' => 'NS', 'value' => 'ns1.dnsmadeeasy.com.', 'ttl' => 300 },
           { 'id' => 5, 'name' => 'delegated', 'type' => 'NS', 'value' => 'ns1.example.net.', 'ttl' => 300 },
@@ -139,5 +138,31 @@ RSpec.describe 'dme zone', type: :aruba do
     its(['origin']) { is_expected.to eq('example.com.') }
     its(['ttl']) { is_expected.to eq(300) }
     its(['records']) { is_expected.to include('owner' => '@', 'type' => 'A', 'value' => '203.0.113.10', 'ttl' => 300) }
+  end
+
+  describe 'plan text output' do
+    subject(:output) { last_command_started.stdout }
+
+    before do
+      run_command_and_stop('dme zone plan valid.zone --domain=example.com --api-key=cli-key --api-secret=cli-secret')
+    end
+
+    it { is_expected.to include('Create') }
+    it { is_expected.to include('www CNAME @') }
+    it { is_expected.to include('Skipped Deletes') }
+    it { is_expected.to include('delegated NS ns1.example.net.') }
+  end
+
+  describe 'plan json output' do
+    subject(:parsed_output) { JSON.parse(last_command_started.stdout) }
+
+    before do
+      run_command_and_stop(
+        'dme zone plan valid.zone --domain=example.com --format=json --api-key=cli-key --api-secret=cli-secret'
+      )
+    end
+
+    its(['creates']) { is_expected.to include(include('action' => 'create')) }
+    its(['skipped_deletes']) { is_expected.to include(include('action' => 'skipped_delete')) }
   end
 end
