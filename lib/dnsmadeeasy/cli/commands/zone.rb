@@ -1,7 +1,9 @@
 # frozen_string_literal: true
 
 require 'dnsmadeeasy/cli/commands/base'
+require 'dnsmadeeasy/cli/input'
 require 'dnsmadeeasy/cli/message_helpers'
+require 'dnsmadeeasy/zone/apply_executor'
 require 'dnsmadeeasy/zone/diff'
 require 'json'
 require 'dnsmadeeasy/zone/parser'
@@ -210,6 +212,95 @@ module DnsMadeEasy
             MessageHelpers.stderr = @err
           end
         end
+
+        # Applies a reviewed zone plan safely.
+        class Apply < Base
+          desc 'Apply DNS changes for a zone file'
+
+          argument :file, required: true, desc: 'Zone file path'
+
+          option :domain, required: false, desc: 'Domain name'
+          option :yes, aliases: ['y'], type: :boolean, default: false, desc: 'Apply without confirmation prompt'
+          option :add_only, aliases: ['a'], type: :boolean, default: false, desc: 'Only add missing records'
+          option :delete_only, aliases: ['d'], type: :boolean, default: false, desc: 'Only apply deletions'
+          option :merge, aliases: ['m'], type: :boolean, default: true, desc: 'Merge creates and updates'
+
+          def call(**options)
+            configure_message_helpers
+            configure_authentication(credentials: options[:credentials], api_key: options[:api_key],
+                                     api_secret: options[:api_secret])
+
+            plan_context = build_plan_context(options.fetch(:file), options[:domain])
+            return fail_with('Zone apply failed', plan_context.failure) if plan_context.failure?
+
+            mode = apply_mode(options)
+            executor = DnsMadeEasy::Zone::ApplyExecutor.new(
+              client: DnsMadeEasy.client,
+              domain: plan_context.value!.fetch(:domain),
+              plan: plan_context.value!.fetch(:plan),
+              remote_records: plan_context.value!.fetch(:remote_records),
+              mode: mode,
+              spinner_output: @err
+            )
+            executable_count = executor.executable_action_count
+            confirm!(executable_count) unless options[:yes]
+
+            result = executor.call
+            return fail_with('Zone apply failed', result.failure) if result.failure?
+
+            print_apply_summary(result.value!)
+          end
+
+          private
+
+          def build_plan_context(file, domain)
+            desired_result = DnsMadeEasy::Zone::Parser.new(::File.read(file)).call
+            return desired_result if desired_result.failure?
+
+            plan_domain = domain || desired_result.value!.origin
+            remote_result = DnsMadeEasy::Zone::RemoteAdapter.new(DnsMadeEasy.client.records_for(plan_domain),
+                                                                 domain: plan_domain).call
+            return remote_result if remote_result.failure?
+
+            plan = DnsMadeEasy::Zone::Diff.new(
+              desired_records: desired_result.value!.records,
+              remote_records: remote_result.value!.records
+            ).call
+
+            Dry::Monads::Success(domain: plan_domain, plan: plan, remote_records: remote_result.value!)
+          end
+
+          def apply_mode(options)
+            return :add_only if options[:add_only]
+            return :delete_only if options[:delete_only]
+
+            :merge
+          end
+
+          def confirm!(executable_count)
+            warn "Apply #{executable_count} action(s)? Type yes to continue:"
+            response = DnsMadeEasy::CLI::Input.stdin.gets.to_s.strip
+            return if response == 'yes'
+
+            raise ArgumentError, 'zone apply cancelled'
+          end
+
+          def print_apply_summary(result)
+            puts "Applied: #{result.applied_actions.length}"
+            puts "Failed: #{result.failed_actions.length}"
+            puts "Skipped: #{result.skipped_actions.length}"
+          end
+
+          def fail_with(message, errors)
+            MessageHelpers.error("#{message}.\n#{errors.join("\n")}")
+            raise ArgumentError, message.downcase
+          end
+
+          def configure_message_helpers
+            MessageHelpers.stdout = @out
+            MessageHelpers.stderr = @err
+          end
+        end
       end
 
       register 'zone' do |prefix|
@@ -217,6 +308,7 @@ module DnsMadeEasy
         prefix.register 'fmt', Zone::Format, aliases: ['format']
         prefix.register 'export', Zone::Export
         prefix.register 'plan', Zone::Plan
+        prefix.register 'apply', Zone::Apply
       end
     end
   end

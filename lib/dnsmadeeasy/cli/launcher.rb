@@ -3,6 +3,7 @@
 require 'dry/cli'
 require 'dnsmadeeasy/version'
 require 'dnsmadeeasy/cli/commands'
+require 'dnsmadeeasy/cli/input'
 
 module DnsMadeEasy
   module CLI
@@ -21,6 +22,7 @@ module DnsMadeEasy
       def execute!
         return print_account_operation_help if account_operation_help?
 
+        Input.stdin = stdin
         command.call(arguments: argv, out: stdout, err: stderr)
       rescue SystemExit => e
         e.status
