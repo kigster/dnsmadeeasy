@@ -18,16 +18,19 @@ RSpec.describe 'dme zone', type: :aruba do
     instance_double(
       DnsMadeEasy::Api::Client,
       records_for: {
-        'data' => [
-          { 'id' => 1, 'name' => '', 'type' => 'A', 'value' => '203.0.113.10', 'ttl' => 300 },
-          { 'id' => 3, 'name' => '', 'type' => 'MX', 'value' => 'mail.example.com.', 'mxLevel' => 10, 'ttl' => 300 },
-          { 'id' => 4, 'name' => '', 'type' => 'NS', 'value' => 'ns1.dnsmadeeasy.com.', 'ttl' => 300 },
-          { 'id' => 5, 'name' => 'delegated', 'type' => 'NS', 'value' => 'ns1.example.net.', 'ttl' => 300 },
-          { 'id' => 6, 'name' => '', 'type' => 'TXT', 'value' => 'v=spf1 include:_spf.google.com ~all', 'ttl' => 300 },
-          { 'id' => 7, 'name' => 'redirect', 'type' => 'HTTPRED', 'value' => 'https://example.com/' }
-        ]
+        'data' => remote_records_data
       }
     )
+  end
+  let(:remote_records_data) do
+    [
+      { 'id' => 1, 'name' => '', 'type' => 'A', 'value' => '203.0.113.10', 'ttl' => 300 },
+      { 'id' => 3, 'name' => '', 'type' => 'MX', 'value' => 'mail.example.com.', 'mxLevel' => 10, 'ttl' => 300 },
+      { 'id' => 4, 'name' => '', 'type' => 'NS', 'value' => 'ns1.dnsmadeeasy.com.', 'ttl' => 300 },
+      { 'id' => 5, 'name' => 'delegated', 'type' => 'NS', 'value' => 'ns1.example.net.', 'ttl' => 300 },
+      { 'id' => 6, 'name' => '', 'type' => 'TXT', 'value' => 'v=spf1 include:_spf.google.com ~all', 'ttl' => 300 },
+      { 'id' => 7, 'name' => 'redirect', 'type' => 'HTTPRED', 'value' => 'https://example.com/' }
+    ]
   end
 
   describe 'validate valid zone file' do
@@ -164,5 +167,51 @@ RSpec.describe 'dme zone', type: :aruba do
 
     its(['creates']) { is_expected.to include(include('action' => 'create')) }
     its(['skipped_deletes']) { is_expected.to include(include('action' => 'skipped_delete')) }
+  end
+
+  describe 'apply add-only' do
+    subject(:output) do
+      expect(client).to receive(:create_record).with('example.com', 'www', 'CNAME', '@', hash_including('ttl' => 300))
+
+      run_command_and_stop(
+        'dme zone apply valid.zone --domain=example.com --add-only --yes --api-key=cli-key --api-secret=cli-secret'
+      )
+
+      last_command_started.stdout
+    end
+
+    it { is_expected.to include('Applied: 1') }
+    it { is_expected.to include('Failed: 0') }
+    it { is_expected.to include('Skipped: 2') }
+  end
+
+  describe 'apply delete-only' do
+    subject(:output) do
+      expect(client).to receive(:delete_record).with('example.com', 5)
+      expect(client).not_to receive(:delete_record).with('example.com', 4)
+
+      run_command_and_stop(
+        'dme zone apply valid.zone --domain=example.com --delete-only --yes --api-key=cli-key --api-secret=cli-secret'
+      )
+
+      last_command_started.stdout
+    end
+
+    it { is_expected.to include('Applied: 1') }
+    it { is_expected.to include('Failed: 0') }
+    it { is_expected.to include('Skipped: 2') }
+  end
+
+  describe 'apply without confirmation' do
+    subject(:error_output) do
+      expect(client).not_to receive(:create_record)
+
+      run_command_and_stop('dme zone apply valid.zone --domain=example.com --api-key=cli-key --api-secret=cli-secret')
+
+      last_command_started.stderr
+    end
+
+    it { is_expected.to include('Apply 1 action(s)? Type yes to continue:') }
+    it { is_expected.to include('zone apply cancelled') }
   end
 end
