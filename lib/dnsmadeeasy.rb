@@ -15,6 +15,8 @@ require 'dnsmadeeasy/zone/provider_record'
 require 'dnsmadeeasy/zone/record_set'
 require 'dnsmadeeasy/zone/file'
 require 'dnsmadeeasy/zone/parser'
+require 'dnsmadeeasy/zone/remote_adapter'
+require 'dnsmadeeasy/zone/remote_records'
 require 'dnsmadeeasy/zone/serializer'
 
 module DnsMadeEasy
