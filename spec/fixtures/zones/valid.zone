@@ -1,0 +1,7 @@
+$ORIGIN example.com.
+$TTL 300
+@ IN SOA ns.example.com. hostmaster.example.com. ( 1 1d 1d 4W 300 )
+@             A     203.0.113.10
+www           CNAME @
+@             MX    10 mail.example.com.
+@             TXT   "v=spf1 include:_spf.google.com ~all"

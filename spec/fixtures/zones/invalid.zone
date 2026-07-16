@@ -1,0 +1,3 @@
+$ORIGIN example.com.
+$TTL 300
+this is not a valid zone record

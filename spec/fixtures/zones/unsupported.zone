@@ -1,0 +1,4 @@
+$ORIGIN example.com.
+$TTL 300
+@ IN SOA ns.example.com. hostmaster.example.com. ( 1 1d 1d 4W 300 )
+@             CAA   0 issue "letsencrypt.org"

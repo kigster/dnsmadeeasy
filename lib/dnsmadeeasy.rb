@@ -13,6 +13,7 @@ require 'dnsmadeeasy/cli/launcher'
 require 'dnsmadeeasy/zone/record'
 require 'dnsmadeeasy/zone/provider_record'
 require 'dnsmadeeasy/zone/record_set'
+require 'dnsmadeeasy/zone/parser'
 
 module DnsMadeEasy
   class Error < StandardError
