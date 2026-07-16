@@ -2,8 +2,10 @@
 
 require 'dnsmadeeasy/cli/commands/base'
 require 'dnsmadeeasy/cli/message_helpers'
+require 'dnsmadeeasy/zone/diff'
 require 'json'
 require 'dnsmadeeasy/zone/parser'
+require 'dnsmadeeasy/zone/plan_renderer'
 require 'dnsmadeeasy/zone/remote_adapter'
 require 'dnsmadeeasy/zone/serializer'
 require 'yaml'
@@ -162,12 +164,59 @@ module DnsMadeEasy
             MessageHelpers.stderr = @err
           end
         end
+
+        # Produces a non-destructive plan comparing a zone file to remote records.
+        class Plan < Base
+          desc 'Plan DNS changes for a zone file'
+
+          argument :file, required: true, desc: 'Zone file path'
+
+          option :domain, required: false, desc: 'Domain name'
+          option :format, values: %w[text json], default: 'text', required: false, desc: 'Plan output format'
+
+          def call(file:, domain: nil, format: 'text', credentials: nil, api_key: nil, api_secret: nil, **)
+            configure_message_helpers
+            configure_authentication(credentials: credentials, api_key: api_key, api_secret: api_secret)
+
+            desired_result = DnsMadeEasy::Zone::Parser.new(::File.read(file)).call
+            return fail_with('Zone file is invalid', desired_result.failure) if desired_result.failure?
+
+            plan_domain = domain || desired_result.value!.origin
+            remote_result = remote_records(plan_domain)
+            return fail_with('Remote records are invalid', remote_result.failure) if remote_result.failure?
+
+            plan = DnsMadeEasy::Zone::Diff.new(
+              desired_records: desired_result.value!.records,
+              remote_records: remote_result.value!.records
+            ).call
+            renderer = DnsMadeEasy::Zone::PlanRenderer.new(plan)
+
+            puts(format == 'json' ? renderer.to_json : renderer.to_text)
+          end
+
+          private
+
+          def remote_records(domain)
+            DnsMadeEasy::Zone::RemoteAdapter.new(DnsMadeEasy.client.records_for(domain), domain: domain).call
+          end
+
+          def fail_with(message, errors)
+            MessageHelpers.error("#{message}.\n#{errors.join("\n")}")
+            raise ArgumentError, message.downcase
+          end
+
+          def configure_message_helpers
+            MessageHelpers.stdout = @out
+            MessageHelpers.stderr = @err
+          end
+        end
       end
 
       register 'zone' do |prefix|
         prefix.register 'validate', Zone::Validate
         prefix.register 'fmt', Zone::Format, aliases: ['format']
         prefix.register 'export', Zone::Export
+        prefix.register 'plan', Zone::Plan
       end
     end
   end

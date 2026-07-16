@@ -31,6 +31,12 @@
 - Parallelize only actions proven independent by the plan.
 - Aggregate worker errors by action/chunk.
 
+## Options (flags)
+
+-a | --add-only     Ensures that only new records are being added, especially if the zone file does not contain all existing records
+-d | --delete-only  Applies only the deletion part of the plan
+-m | --merge        Default mode - compare existing DNS Zone with the provided, and merge the differences, turning them into add/update or delete actions.
+
 ## Live Integration Note
 
 Opt-in live specs may use:
