@@ -13,6 +13,7 @@ RSpec.describe DnsMadeEasy::Zone::RemoteAdapter do
           { 'id' => 1, 'name' => '', 'type' => 'A', 'value' => '203.0.113.10', 'ttl' => 300 },
           { 'id' => 2, 'name' => 'www', 'type' => 'CNAME', 'value' => '@' },
           { 'id' => 3, 'name' => '', 'type' => 'MX', 'value' => 'mail.example.com.', 'mxLevel' => 10 },
+          { 'id' => 4, 'name' => '_dmarc', 'type' => 'TXT', 'value' => '"v=DMARC1; p=none;"' },
           { 'id' => 4, 'name' => 'redirect', 'type' => 'HTTPRED', 'value' => 'https://example.com/' }
         ]
       }
@@ -31,6 +32,7 @@ RSpec.describe DnsMadeEasy::Zone::RemoteAdapter do
         it { is_expected.to include(DnsMadeEasy::Zone::Record.new(owner: '@', type: 'A', value: '203.0.113.10')) }
         it { is_expected.to include(DnsMadeEasy::Zone::Record.new(owner: 'www', type: 'CNAME', value: '@')) }
         it { is_expected.to include(DnsMadeEasy::Zone::Record.new(owner: '@', type: 'MX', value: 'mail.example.com.', priority: 10)) }
+        it { is_expected.to include(DnsMadeEasy::Zone::Record.new(owner: '_dmarc', type: 'TXT', value: 'v=DMARC1; p=none;')) }
         it { is_expected.not_to include(have_attributes(type: 'HTTPRED')) }
       end
 

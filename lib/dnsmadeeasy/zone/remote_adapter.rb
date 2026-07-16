@@ -61,7 +61,7 @@ module DnsMadeEasy
         Record.new(
           owner: owner(remote_record),
           type: remote_record['type'],
-          value: remote_record['value'],
+          value: value(remote_record),
           ttl: remote_record['ttl'] || default_ttl,
           priority: remote_record['mxLevel'] || remote_record['priority'],
           weight: remote_record['weight'],
@@ -74,6 +74,14 @@ module DnsMadeEasy
         return '@' if name.empty? || name == domain || name == domain.delete_suffix('.')
 
         name.delete_suffix(".#{domain.delete_suffix('.')}")
+      end
+
+      def value(remote_record)
+        record_value = remote_record['value']
+        return record_value unless remote_record['type'] == 'TXT'
+        return record_value unless record_value.start_with?('"') && record_value.end_with?('"')
+
+        record_value[1...-1]
       end
 
       def omitted_httpred_warning(remote_record)
