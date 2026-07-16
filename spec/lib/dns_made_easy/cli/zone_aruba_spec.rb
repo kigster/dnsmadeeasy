@@ -1,14 +1,34 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
+require 'json'
+require 'yaml'
 
 RSpec.describe 'dme zone', type: :aruba do
   before do
     setup_aruba
+    allow(DnsMadeEasy).to receive(:client).and_return(client)
     write_file('valid.zone', File.read('spec/fixtures/zones/valid.zone'))
     write_file('formatted.zone', File.read('spec/fixtures/zones/formatted.zone'))
     write_file('invalid.zone', File.read('spec/fixtures/zones/invalid.zone'))
     write_file('unsupported.zone', File.read('spec/fixtures/zones/unsupported.zone'))
+  end
+
+  let(:client) do
+    instance_double(
+      DnsMadeEasy::Api::Client,
+      records_for: {
+        'data' => [
+          { 'id' => 1, 'name' => '', 'type' => 'A', 'value' => '203.0.113.10', 'ttl' => 300 },
+          { 'id' => 2, 'name' => 'www', 'type' => 'CNAME', 'value' => '@', 'ttl' => 300 },
+          { 'id' => 3, 'name' => '', 'type' => 'MX', 'value' => 'mail.example.com.', 'mxLevel' => 10, 'ttl' => 300 },
+          { 'id' => 4, 'name' => '', 'type' => 'NS', 'value' => 'ns1.dnsmadeeasy.com.', 'ttl' => 300 },
+          { 'id' => 5, 'name' => 'delegated', 'type' => 'NS', 'value' => 'ns1.example.net.', 'ttl' => 300 },
+          { 'id' => 6, 'name' => '', 'type' => 'TXT', 'value' => 'v=spf1 include:_spf.google.com ~all', 'ttl' => 300 },
+          { 'id' => 7, 'name' => 'redirect', 'type' => 'HTTPRED', 'value' => 'https://example.com/' }
+        ]
+      }
+    )
   end
 
   describe 'validate valid zone file' do
@@ -50,5 +70,74 @@ RSpec.describe 'dme zone', type: :aruba do
     before { run_command_and_stop('dme zone format formatted.zone') }
 
     it { is_expected.to eq(File.read('spec/fixtures/zones/formatted.zone')) }
+  end
+
+  describe 'export' do
+    subject(:output) { last_command_started.stdout }
+
+    before do
+      run_command_and_stop('dme zone export example.com --api-key=cli-key --api-secret=cli-secret')
+    end
+
+    it { is_expected.to include('$ORIGIN example.com.') }
+    it { is_expected.to include('@        IN A       203.0.113.10') }
+    it { is_expected.to include('delegated IN NS      ns1.example.net.') }
+    it { is_expected.not_to include('HTTPRED') }
+    it { is_expected.not_to include('ns1.dnsmadeeasy.com') }
+  end
+
+  describe 'export warnings' do
+    subject(:error_output) { last_command_started.stderr }
+
+    before do
+      run_command_and_stop('dme zone export example.com --api-key=cli-key --api-secret=cli-secret')
+    end
+
+    it { is_expected.to include('Omitted HTTPRED record redirect -> https://example.com/') }
+  end
+
+  describe 'export with apex NS records' do
+    subject(:output) { last_command_started.stdout }
+
+    before do
+      run_command_and_stop('dme zone export example.com --include-apex-ns --api-key=cli-key --api-secret=cli-secret')
+    end
+
+    it { is_expected.to include('@        IN NS      ns1.dnsmadeeasy.com.') }
+  end
+
+  describe 'export to output file' do
+    subject(:output_file) { read('export.zone') }
+
+    before do
+      run_command_and_stop('dme zone export example.com --output=export.zone --api-key=cli-key --api-secret=cli-secret')
+    end
+
+    it { is_expected.to include('$ORIGIN example.com.') }
+    it { is_expected.to include('@        IN A       203.0.113.10') }
+  end
+
+  describe 'export as json' do
+    subject(:parsed_output) { JSON.parse(last_command_started.stdout) }
+
+    before do
+      run_command_and_stop('dme zone export example.com -f json --api-key=cli-key --api-secret=cli-secret')
+    end
+
+    its(['origin']) { is_expected.to eq('example.com.') }
+    its(['ttl']) { is_expected.to eq(300) }
+    its(['records']) { is_expected.to include('owner' => '@', 'type' => 'A', 'value' => '203.0.113.10', 'ttl' => 300) }
+  end
+
+  describe 'export as yaml' do
+    subject(:parsed_output) { YAML.safe_load(last_command_started.stdout) }
+
+    before do
+      run_command_and_stop('dme zone export example.com --format=yaml --api-key=cli-key --api-secret=cli-secret')
+    end
+
+    its(['origin']) { is_expected.to eq('example.com.') }
+    its(['ttl']) { is_expected.to eq(300) }
+    its(['records']) { is_expected.to include('owner' => '@', 'type' => 'A', 'value' => '203.0.113.10', 'ttl' => 300) }
   end
 end

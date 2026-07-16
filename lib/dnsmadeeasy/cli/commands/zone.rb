@@ -2,8 +2,11 @@
 
 require 'dnsmadeeasy/cli/commands/base'
 require 'dnsmadeeasy/cli/message_helpers'
+require 'json'
 require 'dnsmadeeasy/zone/parser'
+require 'dnsmadeeasy/zone/remote_adapter'
 require 'dnsmadeeasy/zone/serializer'
+require 'yaml'
 
 module DnsMadeEasy
   module CLI
@@ -63,11 +66,108 @@ module DnsMadeEasy
             MessageHelpers.stderr = @err
           end
         end
+
+        # Exports DNS Made Easy records as canonical zone-file text.
+        class Export < Base
+          desc 'Export DNS Made Easy records as a canonical zone file'
+
+          argument :domain, required: true, desc: 'Domain name'
+
+          option :format, aliases: ['f'], values: %w[rfc json yaml], required: false,
+                          desc: 'Export format: rfc, json, or yaml'
+          option :output, required: false, desc: 'Output file path'
+          option :ttl, required: false, desc: 'Default TTL for records missing provider TTL'
+          option :include_apex_ns, type: :boolean, default: false, desc: 'Include apex NS records'
+
+          def call(**options)
+            configure_message_helpers
+            configure_authentication(credentials: options[:credentials], api_key: options[:api_key],
+                                     api_secret: options[:api_secret])
+
+            domain = options.fetch(:domain)
+            export_ttl = options[:ttl] || 300
+            result = DnsMadeEasy::Zone::RemoteAdapter.new(
+              DnsMadeEasy.client.records_for(domain),
+              domain: domain,
+              default_ttl: export_ttl
+            ).call
+
+            if result.success?
+              export_records(
+                domain,
+                result.value!,
+                format: options[:format] || 'rfc',
+                output: options[:output],
+                ttl: export_ttl,
+                include_apex_ns: options[:include_apex_ns]
+              )
+            else
+              MessageHelpers.error("Zone export failed.\n#{result.failure.join("\n")}")
+              raise ArgumentError, 'zone export failed'
+            end
+          end
+
+          private
+
+          def export_records(domain, remote_records, format:, output:, ttl:, include_apex_ns:)
+            remote_records.warnings.each { |warning| warn warning }
+            zone_text = export_text(domain, remote_records, format: format, ttl: ttl, include_apex_ns: include_apex_ns)
+
+            output ? ::File.write(output, zone_text) : puts(zone_text)
+          end
+
+          def export_text(domain, remote_records, format:, ttl:, include_apex_ns:)
+            zone_file = zone_file(domain, remote_records, ttl: ttl)
+
+            case format
+            when 'json'
+              JSON.pretty_generate(export_hash(zone_file))
+            when 'yaml'
+              export_hash(zone_file).to_yaml
+            else
+              DnsMadeEasy::Zone::Serializer.new(zone_file, omit_apex_ns: !include_apex_ns).to_s
+            end
+          end
+
+          def zone_file(domain, remote_records, ttl:)
+            DnsMadeEasy::Zone::File.new(
+              origin: "#{domain.delete_suffix('.')}.",
+              ttl: ttl,
+              record_set: remote_records.record_set
+            )
+          end
+
+          def export_hash(zone_file)
+            {
+              'origin' => zone_file.origin,
+              'ttl' => zone_file.ttl,
+              'records' => zone_file.sorted.map { |record| record_hash(record) }
+            }
+          end
+
+          def record_hash(record)
+            {
+              'owner' => record.owner,
+              'type' => record.type,
+              'value' => record.value,
+              'ttl' => record.ttl,
+              'priority' => record.priority,
+              'weight' => record.weight,
+              'port' => record.port
+            }.compact
+          end
+
+          def configure_message_helpers
+            MessageHelpers.stdout = @out
+            MessageHelpers.stderr = @err
+          end
+        end
       end
 
       register 'zone' do |prefix|
         prefix.register 'validate', Zone::Validate
         prefix.register 'fmt', Zone::Format, aliases: ['format']
+        prefix.register 'export', Zone::Export
       end
     end
   end
