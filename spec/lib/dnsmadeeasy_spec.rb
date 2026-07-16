@@ -24,6 +24,12 @@ module DnsMadeEasy
       it { is_expected.to eq('1.0.0') }
     end
 
+    describe 'configured API credentials' do
+      subject(:configured_api_credentials) { [described_class.api_key, described_class.api_secret] }
+
+      it { is_expected.to eq([api_key, api_secret]) }
+    end
+
     context 'real client' do
       subject(:client) { described_class.client }
 

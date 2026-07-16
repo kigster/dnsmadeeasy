@@ -71,8 +71,16 @@ module DnsMadeEasy
       self.default_api_key = value
     end
 
+    def api_key
+      default_api_key
+    end
+
     def api_secret=(value)
       self.default_api_secret = value
+    end
+
+    def api_secret
+      default_api_secret
     end
 
     def client(**)
