@@ -6,6 +6,25 @@ require 'rspec/its'
 require 'simplecov'
 require 'webmock/rspec'
 require 'aruba/rspec'
+require 'coverage/badge'
+require 'fileutils'
+
+SimpleCov.skip(/spec/)
+SimpleCov.start do
+  self.formatters = [
+    SimpleCov::Formatter::HTMLFormatter,
+    Coverage::Badge::Formatter
+  ]
+end
+
+SimpleCov.at_exit do
+  SimpleCov.result.format!
+  # rubocop: disable RSpec/Output
+  puts "Coverage: #{SimpleCov.result.covered_percent.round(2)}%"
+  # rubocop: enable RSpec/Output
+  FileUtils.mkdir_p('docs/badges')
+  FileUtils.mv('coverage/badge.svg', 'docs/badges/coverage_badge.svg')
+end
 
 SimpleCov.start
 

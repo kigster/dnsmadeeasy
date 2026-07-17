@@ -150,6 +150,10 @@ module DnsMadeEasy
         create_record domain_name, name, 'CNAME', value, **options
       end
 
+      def create_aname_record(domain_name, name, value, options = {})
+        create_record domain_name, name, 'ANAME', value, **options
+      end
+
       def create_ns_record(domain_name, name, value, options = {})
         # TODO: match domainname for value
         create_record domain_name, name, 'NS', value, **options

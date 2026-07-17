@@ -61,12 +61,21 @@ module DnsMadeEasy
         Record.new(
           owner: owner(remote_record),
           type: remote_record['type'],
-          value: remote_record['value'],
+          value: record_value(remote_record),
           ttl: remote_record['ttl'] || default_ttl,
           priority: remote_record['mxLevel'] || remote_record['priority'],
           weight: remote_record['weight'],
           port: remote_record['port']
         )
+      end
+
+      # DME returns TXT/SPF values with the zone-file quotes embedded, while
+      # Record holds unquoted text (Parser strips, Serializer re-quotes).
+      def record_value(remote_record)
+        value = remote_record['value']
+        return value unless %w[TXT SPF].include?(remote_record['type'])
+
+        value.delete_prefix('"').delete_suffix('"')
       end
 
       def owner(remote_record)

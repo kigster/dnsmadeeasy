@@ -31,6 +31,32 @@ RSpec.describe DnsMadeEasy::Zone::Parser do
       end
     end
 
+    # dns-zonefile has no ANAME grammar rule; the parser rewrites and restores them.
+    context 'with ANAME records' do
+      let(:zone_text) do
+        <<~ZONE
+          $ORIGIN example.com.
+          $TTL 300
+
+          @        300 IN ANAME   t.sni.global.fastly.net.
+          *        300 IN CNAME   t.sni.global.fastly.net.
+          www      IN ANAME   target.example.net.
+        ZONE
+      end
+
+      it { is_expected.to be_success }
+
+      describe 'records' do
+        subject(:records) { result.value!.records }
+
+        it { is_expected.to include(DnsMadeEasy::Zone::Record.new(owner: '@', type: 'ANAME', value: 't.sni.global.fastly.net.')) }
+        it { is_expected.to include(DnsMadeEasy::Zone::Record.new(owner: 'www', type: 'ANAME', value: 'target.example.net.')) }
+
+        # The wildcard CNAME shares the ANAME target and must keep its type.
+        it { is_expected.to include(DnsMadeEasy::Zone::Record.new(owner: '*', type: 'CNAME', value: 't.sni.global.fastly.net.')) }
+      end
+    end
+
     context 'with an invalid zone file' do
       let(:fixture_path) { 'spec/fixtures/zones/invalid.zone' }
 

@@ -3,4 +3,4 @@
 
 require 'dnsmadeeasy'
 
-DnsMadeEasy::CLI::Launcher.new(ARGV.dup).execute!
+exit(DnsMadeEasy::CLI::Launcher.new(ARGV.dup).execute!)

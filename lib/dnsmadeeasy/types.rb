@@ -7,7 +7,7 @@ module DnsMadeEasy
   module Types
     include Dry.Types()
 
-    DNS_RECORD_TYPES = %w[A AAAA CNAME MX NS PTR SPF SRV TXT].freeze
+    DNS_RECORD_TYPES = %w[A AAAA CNAME ANAME MX NS PTR SPF SRV TXT].freeze
 
     StrictString = Strict::String
     NonEmptyString = StrictString.constrained(min_size: 1)

@@ -10,7 +10,7 @@ module DnsMadeEasy
     class PlanAction < Dry::Struct
       transform_keys(&:to_sym)
 
-      ACTION_TYPES = %w[create update skipped_delete ambiguous].freeze
+      ACTION_TYPES = %w[create update skipped_create skipped_delete ambiguous].freeze
 
       attribute :action, Types::StrictString.enum(*ACTION_TYPES)
       attribute :record, Record.optional.default(nil)

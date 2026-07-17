@@ -85,6 +85,6 @@ RSpec.describe DnsMadeEasy::Zone::Record do
       )
     end
 
-    it { is_expected.to eq(['', 3, 'MX', 10, -1, -1, 'mail.example.com.', 300]) }
+    it { is_expected.to eq(['', 4, 'MX', 10, -1, -1, 'mail.example.com.', 300]) }
   end
 end

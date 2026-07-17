@@ -67,7 +67,7 @@ module DnsMadeEasy
 
       def serializer_type_group(record)
         case record.type
-        when 'A', 'AAAA', 'CNAME', 'NS', 'PTR'
+        when 'A', 'AAAA', 'CNAME', 'ANAME', 'NS', 'PTR'
           0
         when 'MX', 'SRV'
           1
@@ -83,7 +83,13 @@ module DnsMadeEasy
       end
 
       def serialize_record(record)
-        [record.owner.ljust(8), 'IN', record.type.ljust(7), record_payload(record)].join(' ')
+        [record.owner.ljust(8), ttl_token(record), 'IN', record.type.ljust(7), record_payload(record)].compact.join(' ')
+      end
+
+      # A single $TTL cannot represent a real zone, so records that deviate
+      # from the zone default carry an explicit TTL.
+      def ttl_token(record)
+        record.ttl == zone_file.ttl ? nil : record.ttl.to_s
       end
 
       def record_payload(record)
@@ -100,6 +106,8 @@ module DnsMadeEasy
       end
 
       def quote_text(value)
+        return value if value.start_with?('"') && value.end_with?('"')
+
         %("#{value}")
       end
     end

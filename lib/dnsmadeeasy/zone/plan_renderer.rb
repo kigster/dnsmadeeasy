@@ -16,6 +16,7 @@ module DnsMadeEasy
         [
           section('Create', plan.creates),
           section('Update', plan.updates),
+          section('Skipped Creates', plan.skipped_creates),
           section('Skipped Deletes', plan.skipped_deletes),
           section('Manual Review', plan.ambiguous)
         ].reject(&:empty?).join("\n")
@@ -41,7 +42,7 @@ module DnsMadeEasy
           record_line(action.record)
         when 'update'
           "#{record_line(action.remote_record)} -> #{record_line(action.desired_record)}"
-        when 'skipped_delete'
+        when 'skipped_create', 'skipped_delete'
           "#{record_line(action.record)} (#{action.message})"
         when 'ambiguous'
           "#{record_line(action.remote_record)} -> #{record_line(action.desired_record)} (#{action.message})"
@@ -49,13 +50,14 @@ module DnsMadeEasy
       end
 
       def record_line(record)
-        [record.owner, record.type, record.value].compact.join(' ')
+        [record.owner, record.type, record.priority, record.value, "(ttl=#{record.ttl})"].compact.join(' ')
       end
 
       def plan_hash
         {
           creates: plan.creates.map { |action| action_hash(action) },
           updates: plan.updates.map { |action| action_hash(action) },
+          skipped_creates: plan.skipped_creates.map { |action| action_hash(action) },
           skipped_deletes: plan.skipped_deletes.map { |action| action_hash(action) },
           ambiguous: plan.ambiguous.map { |action| action_hash(action) }
         }

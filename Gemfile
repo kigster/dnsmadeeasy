@@ -6,7 +6,9 @@ source 'https://rubygems.org'
 gemspec
 
 gem 'aruba'
+gem 'coverage-badge'
 gem 'rspec'
 gem 'rspec-its'
 gem 'rubocop'
 gem 'rubocop-rspec'
+gem 'simplecov'

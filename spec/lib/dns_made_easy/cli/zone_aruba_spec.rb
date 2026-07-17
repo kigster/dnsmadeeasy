@@ -28,13 +28,13 @@ RSpec.describe 'dme zone', type: :aruba do
       { 'id' => 3, 'name' => '', 'type' => 'MX', 'value' => 'mail.example.com.', 'mxLevel' => 10, 'ttl' => 300 },
       { 'id' => 4, 'name' => '', 'type' => 'NS', 'value' => 'ns1.dnsmadeeasy.com.', 'ttl' => 300 },
       { 'id' => 5, 'name' => 'delegated', 'type' => 'NS', 'value' => 'ns1.example.net.', 'ttl' => 300 },
-      { 'id' => 6, 'name' => '', 'type' => 'TXT', 'value' => 'v=spf1 include:_spf.google.com ~all', 'ttl' => 300 },
+      { 'id' => 6, 'name' => '', 'type' => 'TXT', 'value' => '"v=spf1 include:_spf.google.com ~all"', 'ttl' => 300 },
       { 'id' => 7, 'name' => 'redirect', 'type' => 'HTTPRED', 'value' => 'https://example.com/' }
     ]
   end
 
   describe 'validate valid zone file' do
-    subject(:output) { last_command_started.stdout }
+    subject(:output) { last_command_started.stderr }
 
     before { run_command_and_stop('dme zone validate valid.zone') }
 
@@ -48,6 +48,9 @@ RSpec.describe 'dme zone', type: :aruba do
     before { run_command_and_stop('dme zone validate invalid.zone') }
 
     it { is_expected.to include('Zone file is invalid.') }
+
+    # The boxed message must not be duplicated by the launcher's rescue.
+    it { is_expected.not_to include('zone file is invalid') }
   end
 
   describe 'validate unsupported zone file' do
@@ -143,6 +146,57 @@ RSpec.describe 'dme zone', type: :aruba do
     its(['records']) { is_expected.to include('owner' => '@', 'type' => 'A', 'value' => '203.0.113.10', 'ttl' => 300) }
   end
 
+  describe 'export with ANAME records' do
+    let(:remote_records_data) do
+      super() + [{ 'id' => 8, 'name' => '', 'type' => 'ANAME', 'value' => 'cdn.example.net.', 'ttl' => 300 }]
+    end
+
+    context 'without --strict-rfc' do
+      subject(:output) { last_command_started.stdout }
+
+      before do
+        run_command_and_stop('dme zone export example.com --api-key=cli-key --api-secret=cli-secret')
+      end
+
+      it { is_expected.to include('@        IN ANAME   cdn.example.net.') }
+
+      describe 'stderr' do
+        subject(:error_output) { last_command_started.stderr }
+
+        it { is_expected.not_to include('Flattened ANAME') }
+      end
+    end
+
+    context 'with --strict-rfc' do
+      subject(:output) { last_command_started.stdout }
+
+      before do
+        allow(Resolv::DNS).to receive(:open).and_return(['203.0.113.80'])
+        run_command_and_stop('dme zone export example.com --strict-rfc --api-key=cli-key --api-secret=cli-secret')
+      end
+
+      it { is_expected.not_to include('ANAME') }
+      it { is_expected.to include('@        IN A       203.0.113.80') }
+
+      describe 'stderr' do
+        subject(:error_output) { last_command_started.stderr }
+
+        it { is_expected.to include('Flattened ANAME @ -> cdn.example.net. into A 203.0.113.80 (point-in-time snapshot)') }
+      end
+    end
+  end
+
+  describe 'export with --strict-rfc and no ANAME records' do
+    subject(:error_output) { last_command_started.stderr }
+
+    before do
+      run_command_and_stop('dme zone export example.com --strict-rfc --api-key=cli-key --api-secret=cli-secret')
+    end
+
+    it { is_expected.not_to include('Flattened ANAME') }
+    it { is_expected.to include('Zone export complete.') }
+  end
+
   describe 'plan text output' do
     subject(:output) { last_command_started.stdout }
 
@@ -154,6 +208,53 @@ RSpec.describe 'dme zone', type: :aruba do
     it { is_expected.to include('www CNAME @') }
     it { is_expected.to include('Skipped Deletes') }
     it { is_expected.to include('delegated NS ns1.example.net.') }
+  end
+
+  describe 'plan with apex NS records in the zone file' do
+    subject(:output) { last_command_started.stdout }
+
+    before do
+      write_file('apex-ns.zone', <<~ZONE)
+        $ORIGIN example.com.
+        $TTL 300
+
+        @        IN A       203.0.113.10
+        @        IN NS      ns0.dnsmadeeasy.com.
+        @        IN MX      10 mail.example.com.
+        @        IN TXT     "v=spf1 include:_spf.google.com ~all"
+      ZONE
+      run_command_and_stop('dme zone plan apex-ns.zone --domain=example.com --api-key=cli-key --api-secret=cli-secret')
+    end
+
+    it { is_expected.to include('Skipped Creates') }
+    it { is_expected.to include('@ NS ns0.dnsmadeeasy.com. (ttl=300) (Apex NS records are managed by the DNS provider)') }
+    it { is_expected.not_to include("Create\n  - @ NS") }
+  end
+
+  describe 'plan with a TTL-only difference' do
+    subject(:output) { last_command_started.stdout }
+
+    let(:remote_records_data) do
+      super().map { |record| record['type'] == 'A' ? record.merge('ttl' => 120) : record }
+    end
+
+    context 'when TTLs are ignored by default' do
+      before do
+        run_command_and_stop('dme zone plan valid.zone --domain=example.com --api-key=cli-key --api-secret=cli-secret')
+      end
+
+      it { is_expected.not_to include('Update') }
+    end
+
+    context 'with --diff-ttl' do
+      before do
+        run_command_and_stop(
+          'dme zone plan valid.zone --domain=example.com --diff-ttl --api-key=cli-key --api-secret=cli-secret'
+        )
+      end
+
+      it { is_expected.to include('@ A 203.0.113.10 (ttl=120) -> @ A 203.0.113.10 (ttl=300)') }
+    end
   end
 
   describe 'plan json output' do
@@ -177,7 +278,7 @@ RSpec.describe 'dme zone', type: :aruba do
         'dme zone apply valid.zone --domain=example.com --add-only --yes --api-key=cli-key --api-secret=cli-secret'
       )
 
-      last_command_started.stdout
+      last_command_started.stderr
     end
 
     it { is_expected.to include('Applied: 1') }
@@ -194,7 +295,7 @@ RSpec.describe 'dme zone', type: :aruba do
         'dme zone apply valid.zone --domain=example.com --delete-only --yes --api-key=cli-key --api-secret=cli-secret'
       )
 
-      last_command_started.stdout
+      last_command_started.stderr
     end
 
     it { is_expected.to include('Applied: 1') }

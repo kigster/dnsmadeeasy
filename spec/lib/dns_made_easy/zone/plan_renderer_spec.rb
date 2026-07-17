@@ -6,7 +6,7 @@ require 'spec_helper'
 RSpec.describe DnsMadeEasy::Zone::PlanRenderer do
   let(:renderer) { described_class.new(plan) }
   let(:record) { DnsMadeEasy::Zone::Record.new(owner: '@', type: 'A', value: '203.0.113.10') }
-  let(:changed_record) { DnsMadeEasy::Zone::Record.new(owner: '@', type: 'A', value: '203.0.113.11') }
+  let(:changed_record) { DnsMadeEasy::Zone::Record.new(owner: '@', type: 'A', value: '203.0.113.10', ttl: 120) }
 
   describe '#to_text' do
     subject(:text) { renderer.to_text }
@@ -31,8 +31,8 @@ RSpec.describe DnsMadeEasy::Zone::PlanRenderer do
         )
       end
 
-      it { is_expected.to include("Create\n  - @ A 203.0.113.10") }
-      it { is_expected.to include("Update\n  - @ A 203.0.113.10 -> @ A 203.0.113.11") }
+      it { is_expected.to include("Create\n  - @ A 203.0.113.10 (ttl=300)") }
+      it { is_expected.to include("Update\n  - @ A 203.0.113.10 (ttl=300) -> @ A 203.0.113.10 (ttl=120)") }
     end
   end
 
