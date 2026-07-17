@@ -2,5 +2,16 @@
 # frozen_string_literal: true
 
 require 'dnsmadeeasy'
+require 'dnsmadeeasy/cli/message_helpers'
 
-DnsMadeEasy::CLI::Launcher.new(ARGV.dup).execute!
+# CLI for DnsMadeEasy v1
+# @deprecated use dmez instead
+class DmeCli
+  def self.start
+    puts
+    ::DnsMadeEasy::CLI::MessageHelpers.error("You've upgraded to the version #{DnsMadeEasy::VERSION} of the DnsMadeEasy Ruby Gem.\nPlease use the new 'dmez' CLI command instead.")
+    exit 1
+  end
+end
+
+DmeCli.start

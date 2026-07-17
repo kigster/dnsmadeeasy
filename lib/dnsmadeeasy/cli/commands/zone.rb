@@ -32,7 +32,7 @@ module DnsMadeEasy
               record_count = result.value!.records.length
               MessageHelpers.success("Zone file is valid.\nRecords: #{record_count}")
             else
-              MessageHelpers.error("Zone file is invalid.\n#{result.failure.join("\n")}")
+              MessageHelpers.warn("Zone file is invalid.\n#{result.failure.join("\n")}")
               raise ArgumentError, 'zone file is invalid'
             end
           end
