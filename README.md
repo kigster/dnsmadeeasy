@@ -1,6 +1,7 @@
 # DnsMadeEasy (`dmez`)
 
-[![Gem Version](https://badge.fury.io/rb/dnsmadeeasy.svg?icon=si%3Arubygems)](https://badge.fury.io/rb/dnsmadeeasy)![coverage](./docs/badges/coverage_badge.svg)![Gem Total Downloads](https://img.shields.io/gem/dt/dnsmadeeasy?style=for-the-badge&logoSize=1)
+[![Gem Version](https://badge.fury.io/rb/dnsmadeeasy.svg?icon=si%3Arubygems)](https://badge.fury.io/rb/dnsmadeeasy)&nbsp;![coverage](docs/badges/coverage_badge.svg)&nbsp;![Gem Total Downloads](https://img.shields.io/gem/dt/dnsmadeeasy?style=for-the-badge&logoSize=auto)
+
 
 ## Ruby Client API Library Supporting Rest API SDK V2.0
 
