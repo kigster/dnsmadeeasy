@@ -13,7 +13,8 @@ RSpec.describe DnsMadeEasy::Zone::RemoteAdapter do
           { 'id' => 1, 'name' => '', 'type' => 'A', 'value' => '203.0.113.10', 'ttl' => 300 },
           { 'id' => 2, 'name' => 'www', 'type' => 'CNAME', 'value' => '@' },
           { 'id' => 3, 'name' => '', 'type' => 'MX', 'value' => 'mail.example.com.', 'mxLevel' => 10 },
-          { 'id' => 4, 'name' => 'redirect', 'type' => 'HTTPRED', 'value' => 'https://example.com/' }
+          { 'id' => 4, 'name' => 'redirect', 'type' => 'HTTPRED', 'value' => 'https://example.com/' },
+          { 'id' => 5, 'name' => 'send', 'type' => 'TXT', 'value' => '"v=spf1 include:amazonses.com ~all"' }
         ]
       }
     end
@@ -32,6 +33,10 @@ RSpec.describe DnsMadeEasy::Zone::RemoteAdapter do
         it { is_expected.to include(DnsMadeEasy::Zone::Record.new(owner: 'www', type: 'CNAME', value: '@')) }
         it { is_expected.to include(DnsMadeEasy::Zone::Record.new(owner: '@', type: 'MX', value: 'mail.example.com.', priority: 10)) }
         it { is_expected.not_to include(have_attributes(type: 'HTTPRED')) }
+
+        # DME embeds zone-file quotes in TXT/SPF values; Record stores them unquoted.
+        it { is_expected.to include(DnsMadeEasy::Zone::Record.new(owner: 'send', type: 'TXT', value: 'v=spf1 include:amazonses.com ~all')) }
+        it { is_expected.not_to include(have_attributes(value: start_with('"'))) }
       end
 
       describe 'provider record' do

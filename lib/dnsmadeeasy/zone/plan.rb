@@ -12,15 +12,16 @@ module DnsMadeEasy
 
       attribute :creates, Types::Array.of(PlanAction).default([].freeze)
       attribute :updates, Types::Array.of(PlanAction).default([].freeze)
+      attribute :skipped_creates, Types::Array.of(PlanAction).default([].freeze)
       attribute :skipped_deletes, Types::Array.of(PlanAction).default([].freeze)
       attribute :ambiguous, Types::Array.of(PlanAction).default([].freeze)
 
       def actions
-        [creates, updates, skipped_deletes, ambiguous].flatten.sort_by(&:sort_key)
+        [creates, updates, skipped_creates, skipped_deletes, ambiguous].flatten.sort_by(&:sort_key)
       end
 
       def empty?
-        creates.empty? && updates.empty? && skipped_deletes.empty? && ambiguous.empty?
+        actions.empty?
       end
     end
   end

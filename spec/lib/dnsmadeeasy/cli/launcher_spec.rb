@@ -17,6 +17,8 @@ RSpec.describe DnsMadeEasy::CLI::Launcher do
 
       before { execute }
 
+      it { is_expected.to eq(0) }
+
       describe 'stdout' do
         subject(:output) { stdout.string }
 

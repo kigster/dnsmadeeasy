@@ -2,5 +2,5 @@
 
 module DnsMadeEasy
   # Version 1.0+ is supporting zone file manipulation
-  VERSION = '1.0.0'
+  VERSION = '1.0.1'
 end

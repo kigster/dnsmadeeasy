@@ -24,8 +24,11 @@ module DnsMadeEasy
 
         Input.stdin = stdin
         command.call(arguments: argv, out: stdout, err: stderr)
+        0
       rescue SystemExit => e
         e.status
+      rescue ReportedError
+        1
       rescue StandardError => e
         stderr.puts(e.message)
         1

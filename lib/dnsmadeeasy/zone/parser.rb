@@ -12,6 +12,8 @@ module DnsMadeEasy
     class Parser
       include Dry::Monads[:result]
 
+      # ANAME is absent from the dns-zonefile grammar; ANAME lines are
+      # rewritten to CNAME before parsing and converted back afterwards.
       SUPPORTED_RECORD_CLASSES = {
         'DNS::Zonefile::A' => 'A',
         'DNS::Zonefile::AAAA' => 'AAAA',
@@ -24,8 +26,11 @@ module DnsMadeEasy
         'DNS::Zonefile::TXT' => 'TXT'
       }.freeze
 
+      ANAME_LINE = /^(?<owner>[^\s;]\S*)\s+(?:\d+\s+)?(?:IN\s+)?ANAME\s+(?<target>\S+)/i
+
       def initialize(zone_text)
         @zone_text = zone_text
+        @aname_keys = []
       end
 
       def call
@@ -40,15 +45,28 @@ module DnsMadeEasy
 
       private
 
-      attr_reader :zone_text
+      attr_reader :zone_text,
+                  :aname_keys
 
       def parseable_zone_text
-        return zone_text if zone_text.match?(/\bSOA\b/)
+        zone_lines = rewrite_aname_lines(zone_text.lines)
+        insert_synthetic_soa(zone_lines) unless zone_text.match?(/\bSOA\b/)
+        zone_lines.join
+      end
 
-        zone_lines = zone_text.lines
+      def rewrite_aname_lines(zone_lines)
+        zone_lines.map do |line|
+          match = ANAME_LINE.match(line)
+          next line unless match
+
+          aname_keys << [match[:owner], match[:target]]
+          line.sub(/\bANAME\b/i, 'CNAME')
+        end
+      end
+
+      def insert_synthetic_soa(zone_lines)
         insertion_index = zone_lines.index { |line| !line.strip.start_with?('$') && !line.strip.empty? } || zone_lines.length
         zone_lines.insert(insertion_index, synthetic_soa_line)
-        zone_lines.join
       end
 
       def synthetic_soa_line
@@ -86,6 +104,7 @@ module DnsMadeEasy
       end
 
       def build_record(provider_record, record_type, origin)
+        record_type = 'ANAME' if record_type == 'CNAME' && aname?(provider_record, origin)
         attributes = {
           owner: normalize_owner(provider_record.host, origin),
           type: record_type,
@@ -106,7 +125,7 @@ module DnsMadeEasy
         case record_type
         when 'A', 'AAAA'
           provider_record.address
-        when 'CNAME', 'MX', 'NS', 'PTR', 'SRV'
+        when 'ANAME', 'CNAME', 'MX', 'NS', 'PTR', 'SRV'
           normalize_target(provider_record.domainname, origin)
         when 'SPF', 'TXT'
           normalize_text_value(provider_record.data)
@@ -117,6 +136,21 @@ module DnsMadeEasy
         return '@' if target == origin
 
         target
+      end
+
+      def aname?(provider_record, origin)
+        owner = normalize_owner(provider_record.host, origin)
+        target = absolute_name(provider_record.domainname, origin)
+        aname_keys.any? do |key_owner, key_target|
+          normalize_owner(absolute_name(key_owner, origin), origin) == owner &&
+            absolute_name(key_target, origin) == target
+        end
+      end
+
+      def absolute_name(name, origin)
+        return origin if name == '@'
+
+        name.end_with?('.') ? name : "#{name}.#{origin}"
       end
 
       def normalize_text_value(value)

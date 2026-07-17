@@ -4,12 +4,15 @@ require 'dry/cli'
 require 'awesome_print'
 require 'json'
 require 'yaml'
+require 'dnsmadeeasy/cli/message_helpers'
 
 module DnsMadeEasy
   module CLI
     module Commands
       # Base class for dry-cli commands.
       class Base < Dry::CLI::Command
+        include MessageHelpers
+
         SUPPORTED_FORMATS = %w[json json_pretty yaml pp].freeze
         DEFAULT_CREDENTIAL_PATHS = [
           Pathname.new('~/.dnsmadeeasy/credentials.ini').expand_path,

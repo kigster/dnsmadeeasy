@@ -5,3 +5,4 @@ $TTL 300
 www           CNAME @
 @             MX    10 mail.example.com.
 @             TXT   "v=spf1 include:_spf.google.com ~all"
+  

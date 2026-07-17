@@ -12,3 +12,5 @@
 .ruby-version
 .rspec_status
 .rake_tasks~
+/zonefile_*
+/*.zone
