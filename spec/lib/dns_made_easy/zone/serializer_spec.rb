@@ -29,8 +29,8 @@ RSpec.describe DnsMadeEasy::Zone::Serializer do
         ]
       end
 
-      it { is_expected.not_to include('@        IN NS') }
-      it { is_expected.to include('delegated IN NS      ns1.example.net.') }
+      it { is_expected.not_to include('@                                    IN NS') }
+      it { is_expected.to include('delegated                            IN NS      ns1.example.net.') }
     end
 
     context 'with records whose TTL differs from the zone TTL' do
@@ -41,8 +41,8 @@ RSpec.describe DnsMadeEasy::Zone::Serializer do
         ]
       end
 
-      it { is_expected.to include('click    120 IN CNAME   links1.resend-dns.com.') }
-      it { is_expected.to include('@        IN A       203.0.113.10') }
+      it { is_expected.to include('click                            120 IN CNAME   links1.resend-dns.com.') }
+      it { is_expected.to include('@                                    IN A       203.0.113.10') }
     end
   end
 
@@ -74,7 +74,7 @@ RSpec.describe DnsMadeEasy::Zone::Serializer do
     let(:first_pass) { described_class.new(zone_file).to_s }
 
     it { is_expected.to eq(first_pass) }
-    it { is_expected.to include('click    120 IN CNAME   links1.resend-dns.com.') }
-    it { is_expected.to include('send     120 IN TXT     "v=spf1 include:amazonses.com ~all"') }
+    it { is_expected.to include('click                            120 IN CNAME   links1.resend-dns.com.') }
+    it { is_expected.to include('send                             120 IN TXT     "v=spf1 include:amazonses.com ~all"') }
   end
 end

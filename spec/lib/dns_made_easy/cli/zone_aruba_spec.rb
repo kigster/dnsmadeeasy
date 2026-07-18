@@ -85,8 +85,8 @@ RSpec.describe 'dme zone', type: :aruba do
     end
 
     it { is_expected.to include('$ORIGIN example.com.') }
-    it { is_expected.to include('@        IN A       203.0.113.10') }
-    it { is_expected.to include('delegated IN NS      ns1.example.net.') }
+    it { is_expected.to include('@                                    IN A       203.0.113.10') }
+    it { is_expected.to include('delegated                            IN NS      ns1.example.net.') }
     it { is_expected.not_to include('HTTPRED') }
     it { is_expected.not_to include('ns1.dnsmadeeasy.com') }
   end
@@ -108,7 +108,7 @@ RSpec.describe 'dme zone', type: :aruba do
       run_command_and_stop('dme zone export example.com --include-apex-ns --api-key=cli-key --api-secret=cli-secret')
     end
 
-    it { is_expected.to include('@        IN NS      ns1.dnsmadeeasy.com.') }
+    it { is_expected.to include('@                                    IN NS      ns1.dnsmadeeasy.com.') }
   end
 
   describe 'export to output file' do
@@ -119,7 +119,7 @@ RSpec.describe 'dme zone', type: :aruba do
     end
 
     it { is_expected.to include('$ORIGIN example.com.') }
-    it { is_expected.to include('@        IN A       203.0.113.10') }
+    it { is_expected.to include('@                                    IN A       203.0.113.10') }
   end
 
   describe 'export as json' do
@@ -158,7 +158,7 @@ RSpec.describe 'dme zone', type: :aruba do
         run_command_and_stop('dme zone export example.com --api-key=cli-key --api-secret=cli-secret')
       end
 
-      it { is_expected.to include('@        IN ANAME   cdn.example.net.') }
+      it { is_expected.to include('@                                    IN ANAME   cdn.example.net.') }
 
       describe 'stderr' do
         subject(:error_output) { last_command_started.stderr }
@@ -176,7 +176,7 @@ RSpec.describe 'dme zone', type: :aruba do
       end
 
       it { is_expected.not_to include('ANAME') }
-      it { is_expected.to include('@        IN A       203.0.113.80') }
+      it { is_expected.to include('@                                    IN A       203.0.113.80') }
 
       describe 'stderr' do
         subject(:error_output) { last_command_started.stderr }

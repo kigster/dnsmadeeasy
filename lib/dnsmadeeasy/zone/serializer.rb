@@ -6,6 +6,10 @@ module DnsMadeEasy
   module Zone
     # Emits deterministic, normalized zone-file text.
     class Serializer
+      # Fixed columns: owner (30), TTL (5, blank when it matches $TTL),
+      # "IN " (3), record type (7), then the payload.
+      RECORD_FORMAT = '%-30s %5s %-3s%-7s %s'
+
       def initialize(zone_file, omit_apex_ns: true)
         @zone_file = zone_file
         @omit_apex_ns = omit_apex_ns
@@ -83,13 +87,13 @@ module DnsMadeEasy
       end
 
       def serialize_record(record)
-        [record.owner.ljust(8), ttl_token(record), 'IN', record.type.ljust(7), record_payload(record)].compact.join(' ')
+        format(RECORD_FORMAT, record.owner, ttl_token(record), 'IN', record.type, record_payload(record))
       end
 
       # A single $TTL cannot represent a real zone, so records that deviate
-      # from the zone default carry an explicit TTL.
+      # from the zone default carry an explicit right-aligned TTL.
       def ttl_token(record)
-        record.ttl == zone_file.ttl ? nil : record.ttl.to_s
+        record.ttl == zone_file.ttl ? '' : record.ttl.to_s
       end
 
       def record_payload(record)
