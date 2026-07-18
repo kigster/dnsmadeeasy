@@ -21,10 +21,10 @@ RSpec.describe DnsMadeEasy::CLI::MessageHelpers do
       message_helper
     end
 
-    it 'prints the boxed message to stderr, keeping stdout clean' do
+    it 'prints the boxed message to stderr after a blank line, keeping stdout clean' do
       message_helper
 
-      expect(stderr.string).to eq("#{expected_box}\n")
+      expect(stderr.string).to eq("\n#{expected_box}\n")
       expect(stdout.string).to be_empty
     end
   end
@@ -56,6 +56,12 @@ RSpec.describe DnsMadeEasy::CLI::MessageHelpers do
 
   describe '.success' do
     it_behaves_like 'a boxed stderr helper', :success, :success, 'success-box'
+  end
+
+  describe '.kv' do
+    it 'right-aligns the key to 30 characters' do
+      expect(described_class.kv('Records', 4)).to eq('                       Records: 4')
+    end
   end
 
   describe 'when included into a command' do

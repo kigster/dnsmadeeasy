@@ -85,8 +85,8 @@ RSpec.describe 'dme zone', type: :aruba do
     end
 
     it { is_expected.to include('$ORIGIN example.com.') }
-    it { is_expected.to include('@        IN A       203.0.113.10') }
-    it { is_expected.to include('delegated IN NS      ns1.example.net.') }
+    it { is_expected.to include('@                                    IN A       203.0.113.10') }
+    it { is_expected.to include('delegated                            IN NS      ns1.example.net.') }
     it { is_expected.not_to include('HTTPRED') }
     it { is_expected.not_to include('ns1.dnsmadeeasy.com') }
   end
@@ -108,7 +108,7 @@ RSpec.describe 'dme zone', type: :aruba do
       run_command_and_stop('dme zone export example.com --include-apex-ns --api-key=cli-key --api-secret=cli-secret')
     end
 
-    it { is_expected.to include('@        IN NS      ns1.dnsmadeeasy.com.') }
+    it { is_expected.to include('@                                    IN NS      ns1.dnsmadeeasy.com.') }
   end
 
   describe 'export to output file' do
@@ -119,7 +119,7 @@ RSpec.describe 'dme zone', type: :aruba do
     end
 
     it { is_expected.to include('$ORIGIN example.com.') }
-    it { is_expected.to include('@        IN A       203.0.113.10') }
+    it { is_expected.to include('@                                    IN A       203.0.113.10') }
   end
 
   describe 'export as json' do
@@ -158,7 +158,7 @@ RSpec.describe 'dme zone', type: :aruba do
         run_command_and_stop('dme zone export example.com --api-key=cli-key --api-secret=cli-secret')
       end
 
-      it { is_expected.to include('@        IN ANAME   cdn.example.net.') }
+      it { is_expected.to include('@                                    IN ANAME   cdn.example.net.') }
 
       describe 'stderr' do
         subject(:error_output) { last_command_started.stderr }
@@ -176,7 +176,7 @@ RSpec.describe 'dme zone', type: :aruba do
       end
 
       it { is_expected.not_to include('ANAME') }
-      it { is_expected.to include('@        IN A       203.0.113.80') }
+      it { is_expected.to include('@                                    IN A       203.0.113.80') }
 
       describe 'stderr' do
         subject(:error_output) { last_command_started.stderr }
@@ -201,7 +201,7 @@ RSpec.describe 'dme zone', type: :aruba do
     subject(:output) { last_command_started.stdout }
 
     before do
-      run_command_and_stop('dme zone plan valid.zone --domain=example.com --api-key=cli-key --api-secret=cli-secret')
+      run_command_and_stop('dme zone plan example.com valid.zone --api-key=cli-key --api-secret=cli-secret')
     end
 
     it { is_expected.to include('Create') }
@@ -223,7 +223,7 @@ RSpec.describe 'dme zone', type: :aruba do
         @        IN MX      10 mail.example.com.
         @        IN TXT     "v=spf1 include:_spf.google.com ~all"
       ZONE
-      run_command_and_stop('dme zone plan apex-ns.zone --domain=example.com --api-key=cli-key --api-secret=cli-secret')
+      run_command_and_stop('dme zone plan example.com apex-ns.zone --api-key=cli-key --api-secret=cli-secret')
     end
 
     it { is_expected.to include('Skipped Creates') }
@@ -240,7 +240,7 @@ RSpec.describe 'dme zone', type: :aruba do
 
     context 'when TTLs are ignored by default' do
       before do
-        run_command_and_stop('dme zone plan valid.zone --domain=example.com --api-key=cli-key --api-secret=cli-secret')
+        run_command_and_stop('dme zone plan example.com valid.zone --api-key=cli-key --api-secret=cli-secret')
       end
 
       it { is_expected.not_to include('Update') }
@@ -249,7 +249,7 @@ RSpec.describe 'dme zone', type: :aruba do
     context 'with --diff-ttl' do
       before do
         run_command_and_stop(
-          'dme zone plan valid.zone --domain=example.com --diff-ttl --api-key=cli-key --api-secret=cli-secret'
+          'dme zone plan example.com valid.zone --diff-ttl --api-key=cli-key --api-secret=cli-secret'
         )
       end
 
@@ -262,7 +262,7 @@ RSpec.describe 'dme zone', type: :aruba do
 
     before do
       run_command_and_stop(
-        'dme zone plan valid.zone --domain=example.com --format=json --api-key=cli-key --api-secret=cli-secret'
+        'dme zone plan example.com valid.zone --format=json --api-key=cli-key --api-secret=cli-secret'
       )
     end
 
@@ -275,7 +275,7 @@ RSpec.describe 'dme zone', type: :aruba do
       expect(client).to receive(:create_record).with('example.com', 'www', 'CNAME', '@', hash_including('ttl' => 300))
 
       run_command_and_stop(
-        'dme zone apply valid.zone --domain=example.com --add-only --yes --api-key=cli-key --api-secret=cli-secret'
+        'dme zone apply example.com valid.zone --add-only --yes --api-key=cli-key --api-secret=cli-secret'
       )
 
       last_command_started.stderr
@@ -292,7 +292,7 @@ RSpec.describe 'dme zone', type: :aruba do
       expect(client).not_to receive(:delete_record).with('example.com', 4)
 
       run_command_and_stop(
-        'dme zone apply valid.zone --domain=example.com --delete-only --yes --api-key=cli-key --api-secret=cli-secret'
+        'dme zone apply example.com valid.zone --delete-only --yes --api-key=cli-key --api-secret=cli-secret'
       )
 
       last_command_started.stderr
@@ -307,12 +307,81 @@ RSpec.describe 'dme zone', type: :aruba do
     subject(:error_output) do
       expect(client).not_to receive(:create_record)
 
-      run_command_and_stop('dme zone apply valid.zone --domain=example.com --api-key=cli-key --api-secret=cli-secret')
+      run_command_and_stop('dme zone apply example.com valid.zone --api-key=cli-key --api-secret=cli-secret')
 
       last_command_started.stderr
     end
 
     it { is_expected.to include('Apply 1 action(s)? Type yes to continue:') }
     it { is_expected.to include('zone apply cancelled') }
+  end
+
+  describe 'plan normalizes the domain argument for the API' do
+    subject(:error_output) do
+      # The 1.0.1 bug shipped "kig.re." (trailing-dot FQDN) to the API and got
+      # a 404; the argument must reach the client dot-free and downcased. Any
+      # other argument raises, which fails the command and thus the example.
+      allow(client).to receive(:records_for).and_raise('records_for called with a non-normalized domain')
+      allow(client).to receive(:records_for).with('example.com').and_return('data' => remote_records_data)
+
+      run_command_and_stop('dme zone plan EXAMPLE.COM. valid.zone --api-key=cli-key --api-secret=cli-secret')
+
+      last_command_started.stderr
+    end
+
+    it { is_expected.to include('Zone plan complete for example.com') }
+  end
+
+  describe 'plan with a mismatched $ORIGIN' do
+    subject(:error_output) do
+      expect(client).not_to receive(:records_for)
+
+      run_command_and_stop('dme zone plan other.example valid.zone --api-key=cli-key --api-secret=cli-secret')
+
+      last_command_started.stderr
+    end
+
+    it { is_expected.to include('Domain and zone file disagree.') }
+    it { is_expected.to include('Domain argument: other.example') }
+    it { is_expected.to include('Zone file $ORIGIN: example.com.') }
+    it { is_expected.not_to include('arguments are swapped') }
+  end
+
+  describe 'plan with swapped arguments' do
+    subject(:error_output) do
+      expect(client).not_to receive(:records_for)
+
+      run_command_and_stop('dme zone plan valid.zone example.com --api-key=cli-key --api-secret=cli-secret')
+
+      last_command_started.stderr
+    end
+
+    it { is_expected.to include('Zone file not found: example.com') }
+    it { is_expected.to include('It looks like the arguments are swapped. Usage: dmez zone plan DOMAIN FILE') }
+  end
+
+  describe 'plan with a missing zone file' do
+    subject(:error_output) do
+      run_command_and_stop('dme zone plan example.com missing.zone --api-key=cli-key --api-secret=cli-secret')
+
+      last_command_started.stderr
+    end
+
+    it { is_expected.to include('Zone file not found: missing.zone') }
+    it { is_expected.not_to include('arguments are swapped') }
+  end
+
+  describe 'apply with a mismatched $ORIGIN' do
+    subject(:error_output) do
+      expect(client).not_to receive(:records_for)
+      expect(client).not_to receive(:create_record)
+
+      run_command_and_stop('dme zone apply other.example valid.zone --yes --api-key=cli-key --api-secret=cli-secret')
+
+      last_command_started.stderr
+    end
+
+    it { is_expected.to include('Domain and zone file disagree.') }
+    it { is_expected.to include('Zone file $ORIGIN: example.com.') }
   end
 end

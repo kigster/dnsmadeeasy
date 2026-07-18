@@ -1,19 +1,16 @@
 # DnsMadeEasy (`dmez`)
 
-[![Gem Version](https://badge.fury.io/rb/dnsmadeeasy.svg?icon=si%3Arubygems)](https://badge.fury.io/rb/dnsmadeeasy)&nbsp;![coverage](docs/badges/coverage_badge.svg)&nbsp;![Gem Total Downloads](https://img.shields.io/gem/dt/dnsmadeeasy?style=for-the-badge&logoSize=auto)
-
+[![Gem Version](https://badge.fury.io/rb/dnsmadeeasy.svg?icon=si%3Arubygems)](https://badge.fury.io/rb/dnsmadeeasy) ![coverage](docs/badges/coverage_badge.svg) ![Gem Total Downloads](https://img.shields.io/gem/dt/dnsmadeeasy?style=for-the-badge&logoSize=auto)
 
 ## Ruby Client API Library Supporting Rest API SDK V2.0
 
 ### Gem Version 1.0 Supporting Zone Exports, Formatting, Plan, Apply
 
-
-
 > [!IMPORTANT]
 >
 > This gem is not backwards compatible with the previous version. It has been updated to work with DNS zone files and follow Terraform's pattern of the `read` → `plan` → `apply` loop. The old `dme` executable is deprecated in favor of `dmez`.
 
-------
+______________________________________________________________________
 
 This gem ships two things:
 
@@ -73,11 +70,11 @@ This is the flagship feature of version 1.0: your DME zones become plain text fi
 ```bash
 $ dmez zone --help
 Commands:
-  dmez zone apply FILE      # Apply DNS changes for a zone file
-  dmez zone export DOMAIN   # Export DNS Made Easy records as a canonical zone file
-  dmez zone fmt FILE        # Format a DNS zone file
-  dmez zone plan FILE       # Plan DNS changes for a zone file
-  dmez zone validate FILE   # Validate a DNS zone file
+  dmez zone apply DOMAIN FILE   # Apply DNS changes for a zone file
+  dmez zone export DOMAIN       # Export DNS Made Easy records as a canonical zone file
+  dmez zone fmt FILE            # Format a DNS zone file
+  dmez zone plan DOMAIN FILE    # Plan DNS changes for a zone file
+  dmez zone validate FILE       # Validate a DNS zone file
 ```
 
 #### `dmez zone export`
@@ -94,28 +91,29 @@ A real-world export looks like this:
 $ORIGIN example.com.
 $TTL 60
 
-@        300 IN A       151.101.3.52
-@        300 IN A       151.101.67.52
-@        300 IN ANAME   t.sni.global.fastly.net.
-*        300 IN CNAME   t.sni.global.fastly.net.
-_acme-challenge IN CNAME   validation-abc123.acme-validations.example.net.
-dev      IN A       127.0.0.1
-mail._domainkey IN CNAME   mail.domainkey.abc123.mailprovider.example.net.
-ssh      300 IN A       203.0.113.22
+@                                300 IN A       151.101.3.52
+@                                300 IN A       151.101.67.52
+@                                300 IN ANAME   t.sni.global.fastly.net.
+*                                300 IN CNAME   t.sni.global.fastly.net.
+_acme-challenge                      IN CNAME   validation-abc123.acme-validations.example.net.
+dev                                  IN A       127.0.0.1
+mail._domainkey                      IN CNAME   mail.domainkey.abc123.mailprovider.example.net.
+ssh                              300 IN A       203.0.113.22
 
-@        IN MX      10 mail.protonmail.ch.
-@        IN MX      20 mailsec.protonmail.ch.
+@                                    IN MX      10 mail.protonmail.ch.
+@                                    IN MX      20 mailsec.protonmail.ch.
 
-_imaps._tcp 1800 IN SRV     0 1 993 imap.fastmail.com.
-_submission._tcp 1800 IN SRV     0 1 587 smtp.fastmail.com.
+_imaps._tcp                     1800 IN SRV     0 1 993 imap.fastmail.com.
+_submission._tcp                1800 IN SRV     0 1 587 smtp.fastmail.com.
 
-@        IN TXT     "v=spf1 include:_spf.protonmail.ch ~all"
-@        IN TXT     "google-site-verification=abc123def456"
-_dmarc   IN TXT     "v=DMARC1; p=quarantine"
+@                                    IN TXT     "v=spf1 include:_spf.protonmail.ch ~all"
+@                                    IN TXT     "google-site-verification=abc123def456"
+_dmarc                               IN TXT     "v=DMARC1; p=quarantine"
 ```
 
 Things to notice:
 
+- **Fixed columns**: owner (30 chars), TTL (5, blank when it matches `$TTL`, right-aligned otherwise), class, and type — so even zones with long `_domainkey` owners stay perfectly aligned.
 - **`$TTL` is derived from your records** — it is set to the most common record TTL, and only records that deviate carry an explicit TTL (the `300` and `1800` above). The export is TTL-lossless: re-parsing it yields exactly the TTLs the provider reported.
 - **ANAME records are preserved as ANAME.** ANAME is not a standard DNS record type (it exists only inside providers), and DME's own zone export *flattens* ANAMEs into resolved A-record snapshots — which go stale as soon as the target rotates. `dmez` keeps them first-class so the file remains a faithful, apply-able representation of your account. If you need an RFC-portable file (for BIND, or to migrate providers), pass `--strict-rfc` to the `dmez zone export` command: ANAMEs are flattened into their currently resolved A records, and a warning is printed for each conversion — if and only if a conversion happened.
 - **Apex NS records are omitted by default** since DME manages them; pass `--include-apex-ns` to include them.
@@ -150,7 +148,7 @@ dmez zone fmt provider-export.zone > example.com.zone
 The heart of the workflow: compares a zone file (desired state) against the live records (actual state) and prints what would change — without changing anything.
 
 ```bash
-$ dmez zone plan example.com.zone --domain=example.com
+$ dmez zone plan example.com example.com.zone
 No changes.
 ```
 
@@ -175,14 +173,16 @@ Manual Review
 - **Skipped Deletes** — records in the account but not in the file. Deletes never happen by default; see `apply --delete-only`.
 - **Manual Review** — multiple records share the same owner/type identity and cannot be paired one-to-one (for example five apex `A` records in the file versus four in the account). The plan refuses to guess.
 
-Options: `--domain=NAME` (defaults to the file's `$ORIGIN`), `--format=text|json`, `--diff-ttl`.
+Options: `--format=text|json`, `--diff-ttl`.
+
+The domain is always the first argument, and the zone file's `$ORIGIN` is cross-checked against it (trailing dot and case are ignored): if the file says `$ORIGIN other.example.` while you passed `example.com`, the command fails before a single API call is made. Diffing the wrong domain against the wrong file should be an error, not a surprise apply.
 
 #### TTL Handling
 
 `zone plan` and `zone apply` **ignore TTL-only differences by default**: a record whose only deviation from the remote is its TTL is considered unchanged, and value updates preserve the remote TTL. Pass `--diff-ttl` to treat TTLs as part of the record — TTL-only differences then become updates, and applied records take the TTL from the zone file:
 
 ```bash
-$ dmez zone plan example.com.zone --domain=example.com --diff-ttl
+$ dmez zone plan example.com example.com.zone --diff-ttl
 Update
   - click CNAME links.cdn.example.net. (ttl=120) -> click CNAME links.cdn.example.net. (ttl=300)
 ```
@@ -192,7 +192,7 @@ Update
 Executes the plan against DNS Made Easy. You will be shown the number of actions and asked to confirm (skip the prompt with `--yes`):
 
 ```bash
-$ dmez zone apply example.com.zone --domain=example.com
+$ dmez zone apply example.com example.com.zone
 Apply 3 action(s)? Type yes to continue:
 yes
 ╔ ✔ OK ══════════════════════════════════════╗
@@ -226,13 +226,13 @@ $EDITOR mail.example.com.zone
 
 # 3. Validate and review the plan
 dmez zone validate mail.example.com.zone
-dmez zone plan mail.example.com.zone --domain=mail.example.com
+dmez zone plan mail.example.com mail.example.com.zone
 
 # 4. Apply (add-only is the safest mode for additive changes)
-dmez zone apply mail.example.com.zone --domain=mail.example.com --add-only --yes
+dmez zone apply mail.example.com mail.example.com.zone --add-only --yes
 
 # 5. Verify: re-running plan should now be a no-op
-dmez zone plan mail.example.com.zone --domain=mail.example.com
+dmez zone plan mail.example.com mail.example.com.zone
 # => No changes.
 ```
 
@@ -242,14 +242,14 @@ The edited file from step 2 might look like:
 $ORIGIN mail.example.com.
 $TTL 300
 
-click    IN CNAME   links.mailer.example.net.
+click                                IN CNAME   links.mailer.example.net.
 
-@        IN MX      10 inbound-smtp.us-east-1.amazonaws.com.
-send     IN MX      10 feedback-smtp.us-east-1.amazonses.com.
+@                                    IN MX      10 inbound-smtp.us-east-1.amazonaws.com.
+send                                 IN MX      10 feedback-smtp.us-east-1.amazonses.com.
 
-_dmarc   IN TXT     "v=DMARC1; p=none;"
-mailer._domainkey IN TXT     "p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC7abc123...AQAB"
-send     IN TXT     "v=spf1 include:amazonses.com ~all"
+_dmarc                               IN TXT     "v=DMARC1; p=none;"
+mailer._domainkey                    IN TXT     "p=MIGfMA0GCSqGSIb3DQE7abc123...AQAB"
+send                                 IN TXT     "v=spf1 include:amazonses.com ~all"
 ```
 
 > [!NOTE]
@@ -445,7 +445,7 @@ In a nutshell you have three ways to access all methods provided by the [`DnsMad
 
 Whether or not you are accessing a single account or multiple, it is recommended that you save your credentials (the API key and the secret) encrypted in the above mentioned file `~/.dnsmadeeasy/credentials.yml` (or any file of you preference).
 
->  [!WARNING]
+> [!WARNING]
 >
 > _**DO NOT check that file into your repo! If you use encryption, do not check in your key!**_
 
@@ -514,8 +514,6 @@ All public methods of this library return a Hash-like object, that is actually a
 > [!NOTE]
 >
 > `to_hash` converts the entire object to a regular hash, including the deeply nested hashes, while `to_h` only converts the primary object, but not the nested hashes. Here is an example below -- in the first instance where we call `to_h` we are still able to call `.value` on the nested object, because only the top-level `Mash` has been converted into a `Hash`. In the second example, this call fails, because this method does not exist, and the value must be accessed via the square brackets:
-
-
 
 ```ruby
 IRB > recs.to_h['data'].last.value
@@ -781,8 +779,6 @@ DME.requests_remaining
 #=> 19898
 ```
 
-
-
 > [!NOTE]
 > Information is not available until an API call has been made.
 
@@ -804,7 +800,7 @@ It was mentioned above that the credentials YAML file may contain encrypted valu
 >
 > There is a much better encryption facility called `sopsy` written in Rust. We highly recommend you use `sopsy` for encrypting your secrets, as it mints private keys on a Mac inside Appple Enclave hardware chip. For more information please see [sopsy's website](https://sopsy-cli.dev) or the [Github Project](https://github.com/kigster/sopsy).
 
-------
+______________________________________________________________________
 
 In order to encrypt your values, you need to perform the following steps:
 
