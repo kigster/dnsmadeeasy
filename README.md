@@ -1,4 +1,4 @@
-# DnsMadeEasy (`dmez`)
+# ADnsMadeEasy (`dmez`)
 
 [![Gem Version](https://badge.fury.io/rb/dnsmadeeasy.svg?icon=si%3Arubygems)](https://badge.fury.io/rb/dnsmadeeasy)&nbsp;![coverage](docs/badges/coverage_badge.svg)&nbsp;![Gem Total Downloads](https://img.shields.io/gem/dt/dnsmadeeasy?style=for-the-badge&logoSize=auto)
 
@@ -73,11 +73,11 @@ This is the flagship feature of version 1.0: your DME zones become plain text fi
 ```bash
 $ dmez zone --help
 Commands:
-  dmez zone apply FILE      # Apply DNS changes for a zone file
-  dmez zone export DOMAIN   # Export DNS Made Easy records as a canonical zone file
-  dmez zone fmt FILE        # Format a DNS zone file
-  dmez zone plan FILE       # Plan DNS changes for a zone file
-  dmez zone validate FILE   # Validate a DNS zone file
+  dmez zone apply DOMAIN FILE   # Apply DNS changes for a zone file
+  dmez zone export DOMAIN       # Export DNS Made Easy records as a canonical zone file
+  dmez zone fmt FILE            # Format a DNS zone file
+  dmez zone plan DOMAIN FILE    # Plan DNS changes for a zone file
+  dmez zone validate FILE       # Validate a DNS zone file
 ```
 
 #### `dmez zone export`
@@ -150,7 +150,7 @@ dmez zone fmt provider-export.zone > example.com.zone
 The heart of the workflow: compares a zone file (desired state) against the live records (actual state) and prints what would change — without changing anything.
 
 ```bash
-$ dmez zone plan example.com.zone --domain=example.com
+$ dmez zone plan example.com example.com.zone
 No changes.
 ```
 
@@ -175,14 +175,16 @@ Manual Review
 - **Skipped Deletes** — records in the account but not in the file. Deletes never happen by default; see `apply --delete-only`.
 - **Manual Review** — multiple records share the same owner/type identity and cannot be paired one-to-one (for example five apex `A` records in the file versus four in the account). The plan refuses to guess.
 
-Options: `--domain=NAME` (defaults to the file's `$ORIGIN`), `--format=text|json`, `--diff-ttl`.
+Options: `--format=text|json`, `--diff-ttl`.
+
+The domain is always the first argument, and the zone file's `$ORIGIN` is cross-checked against it (trailing dot and case are ignored): if the file says `$ORIGIN other.example.` while you passed `example.com`, the command fails before a single API call is made. Diffing the wrong domain against the wrong file should be an error, not a surprise apply.
 
 #### TTL Handling
 
 `zone plan` and `zone apply` **ignore TTL-only differences by default**: a record whose only deviation from the remote is its TTL is considered unchanged, and value updates preserve the remote TTL. Pass `--diff-ttl` to treat TTLs as part of the record — TTL-only differences then become updates, and applied records take the TTL from the zone file:
 
 ```bash
-$ dmez zone plan example.com.zone --domain=example.com --diff-ttl
+$ dmez zone plan example.com example.com.zone --diff-ttl
 Update
   - click CNAME links.cdn.example.net. (ttl=120) -> click CNAME links.cdn.example.net. (ttl=300)
 ```
@@ -192,7 +194,7 @@ Update
 Executes the plan against DNS Made Easy. You will be shown the number of actions and asked to confirm (skip the prompt with `--yes`):
 
 ```bash
-$ dmez zone apply example.com.zone --domain=example.com
+$ dmez zone apply example.com example.com.zone
 Apply 3 action(s)? Type yes to continue:
 yes
 ╔ ✔ OK ══════════════════════════════════════╗
@@ -226,13 +228,13 @@ $EDITOR mail.example.com.zone
 
 # 3. Validate and review the plan
 dmez zone validate mail.example.com.zone
-dmez zone plan mail.example.com.zone --domain=mail.example.com
+dmez zone plan mail.example.com mail.example.com.zone
 
 # 4. Apply (add-only is the safest mode for additive changes)
-dmez zone apply mail.example.com.zone --domain=mail.example.com --add-only --yes
+dmez zone apply mail.example.com mail.example.com.zone --add-only --yes
 
 # 5. Verify: re-running plan should now be a no-op
-dmez zone plan mail.example.com.zone --domain=mail.example.com
+dmez zone plan mail.example.com mail.example.com.zone
 # => No changes.
 ```
 
