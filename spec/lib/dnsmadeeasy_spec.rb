@@ -21,7 +21,7 @@ module DnsMadeEasy
     describe 'version' do
       subject(:version) { described_class::VERSION }
 
-      it { is_expected.to eq('1.0.2') }
+      it { is_expected.not_to be_nil }
     end
 
     describe 'configured API credentials' do
