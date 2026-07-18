@@ -248,7 +248,7 @@ click                                IN CNAME   links.mailer.example.net.
 send                                 IN MX      10 feedback-smtp.us-east-1.amazonses.com.
 
 _dmarc                               IN TXT     "v=DMARC1; p=none;"
-mailer._domainkey                    IN TXT     "p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC7abc123...AQAB"
+mailer._domainkey                    IN TXT     "p=MIGfMA0GCSqGSIb3DQE7abc123...AQAB"
 send                                 IN TXT     "v=spf1 include:amazonses.com ~all"
 ```
 
@@ -360,12 +360,12 @@ Once you have the key and the secret, you have several choices:
 
   ```ruby
   require 'dnsmadeeasy'
-
+  
   DnsMadeEasy.configure do |config|
     config.api_key = 'XXXX'
     config.api_secret = 'YYYY'
   end
-
+  
   DnsMadeEasy.domains.data.first.name #=> 'moo.gamespot.com'
   ```
 
