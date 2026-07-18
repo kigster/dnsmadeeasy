@@ -21,10 +21,10 @@ RSpec.describe DnsMadeEasy::CLI::MessageHelpers do
       message_helper
     end
 
-    it 'prints the boxed message to stderr, keeping stdout clean' do
+    it 'prints the boxed message to stderr after a blank line, keeping stdout clean' do
       message_helper
 
-      expect(stderr.string).to eq("#{expected_box}\n")
+      expect(stderr.string).to eq("\n#{expected_box}\n")
       expect(stdout.string).to be_empty
     end
   end

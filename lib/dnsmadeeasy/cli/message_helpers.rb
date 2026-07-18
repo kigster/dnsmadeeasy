@@ -43,6 +43,7 @@ module DnsMadeEasy
 
         def print_box(box_type, message, output)
           box = TTY::Box.public_send(box_type, message, **BOX_OPTIONS)
+          output.puts
           output.puts(box)
           box
         end
