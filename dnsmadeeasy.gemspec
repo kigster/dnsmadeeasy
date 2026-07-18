@@ -8,20 +8,24 @@ require 'dnsmadeeasy/version'
 
 # rubocop:todo Naming/HeredocDelimiterCase
 DnsMadeEasy::DESCRIPTION = <<~eof
-  This is an authoratative and fully-featured API client for the
-  DNS Provider "DnsMadeEasy.com".
+  This gem ships "dmez" — a Terraform-style command line tool for the
+  DNS provider DnsMadeEasy.com — together with an authoritative,
+  fully-featured Ruby client for their REST API v2.0.
 
-  This library offers both a rich Ruby API that you can use to
-  automate DNS record management, as well
-  as a rich CLI interface with the command line executable "dme"
-  installed when you install the gem.
-  The gem additionally supports storing credentials in
-  the ~/.dnsmadeeasy/credentials.yml
-  file, supports multiple accounts, encryption, and more.
+  The dmez CLI manages your zones as standard DNS zone files with the
+  familiar read -> plan -> apply loop: "dmez zone export" writes a
+  canonical, TTL-lossless zone file with fixed aligned columns;
+  "dmez zone plan" diffs it against the live records (conservatively:
+  deletes are skipped by default and ambiguous record groups are
+  flagged for manual review); "dmez zone apply" executes the plan in
+  merge, add-only, or delete-only mode. Zone files can also be
+  validated and formatted, ANAME records are preserved as first-class
+  citizens (with optional --strict-rfc flattening on export), and
+  every account API operation is available under "dmez account".
 
-  If you are using Chef consider using the "dnsmadeeasy"
-  Chef Cookbook, while uses this gem behind
-  the scenes: https://supermarket.chef.io/cookbooks/dnsmadeeasy
+  The Ruby API supports storing credentials in
+  ~/.dnsmadeeasy/credentials.yml, including multiple accounts and
+  sym-encrypted values.
 
   ACKNOWLEDGEMENTS:
 
@@ -44,14 +48,18 @@ Gem::Specification.new do |spec|
   spec.summary       = DnsMadeEasy::DESCRIPTION
   spec.description   = DnsMadeEasy::DESCRIPTION
   spec.post_install_message = <<~EOF
-    Thank you for using the DnsMadeEasy ruby gem, the Ruby client
-    API for DnsMadeEasy.com's SDK v2. Please note that this gem
-    comes with a rich command line utility 'dme' which you can use
-    instead of the ruby API if you prefer. Run `dme` with no
-    arguments to see the help message.
+    Thank you for installing the DnsMadeEasy ruby gem, which ships
+    the 'dmez' CLI — manage your DNS zones as plain zone files with
+    a Terraform-style workflow:
 
-    You can also store (multi-account) credentials in a YAML file in
-    your home directory. For more information, please see README at:
+      dmez zone export yourdomain.com --output=yourdomain.com.zone
+      dmez zone plan   yourdomain.com yourdomain.com.zone
+      dmez zone apply  yourdomain.com yourdomain.com.zone
+
+    Run `dmez --help` to see all commands (the old 'dme' executable
+    is deprecated). A full Ruby API client is included as well, with
+    (multi-account) credentials support via a YAML file in your home
+    directory. For more information, please see the README at:
     https://github.com/kigster/dnsmadeeasy
   EOF
 
