@@ -58,6 +58,12 @@ RSpec.describe DnsMadeEasy::CLI::MessageHelpers do
     it_behaves_like 'a boxed stderr helper', :success, :success, 'success-box'
   end
 
+  describe '.kv' do
+    it 'right-aligns the key to 30 characters' do
+      expect(described_class.kv('Records', 4)).to eq('                       Records: 4')
+    end
+  end
+
   describe 'when included into a command' do
     subject(:command) { command_class.new }
 

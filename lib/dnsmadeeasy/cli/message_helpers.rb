@@ -18,6 +18,9 @@ module DnsMadeEasy
         width: 85
       }.freeze
 
+      # Right-aligned key column for "key: value" lines inside boxes.
+      KEY_WIDTH = 30
+
       class << self
         attr_accessor :stdout, :stderr
 
@@ -47,6 +50,10 @@ module DnsMadeEasy
           output.puts(box)
           box
         end
+
+        def kv(key, value)
+          format("%#{KEY_WIDTH}s: %s", key, value)
+        end
       end
 
       # Boxed helpers for command classes. The warn box is exposed as
@@ -66,6 +73,10 @@ module DnsMadeEasy
 
         def success(message)
           MessageHelpers.print_box(:success, message, message_output)
+        end
+
+        def kv(key, value)
+          MessageHelpers.kv(key, value)
         end
 
         private

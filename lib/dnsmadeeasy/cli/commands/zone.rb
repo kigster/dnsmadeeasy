@@ -43,8 +43,8 @@ module DnsMadeEasy
 
             lines = [
               'Domain and zone file disagree.',
-              "Domain argument: #{domain}",
-              "Zone file $ORIGIN: #{origin}"
+              kv('Domain argument', domain),
+              kv('Zone file $ORIGIN', origin)
             ]
             lines << swap_hint if ::File.file?(domain.to_s)
             error(lines.join("\n"))
@@ -71,7 +71,7 @@ module DnsMadeEasy
 
             if result.success?
               record_count = result.value!.records.length
-              success("Zone file is valid.\nRecords: #{record_count}")
+              success("Zone file is valid.\n#{kv('Records', record_count)}")
             else
               warning("Zone file is invalid.\n#{result.failure.join("\n")}")
               raise ReportedError, 'zone file is invalid'
@@ -90,7 +90,7 @@ module DnsMadeEasy
 
             if result.success?
               puts DnsMadeEasy::Zone::Serializer.new(result.value!)
-              success("Zone file formatted.\nRecords: #{result.value!.records.length}")
+              success("Zone file formatted.\n#{kv('Records', result.value!.records.length)}")
             else
               error("Zone file is invalid.\n#{result.failure.join("\n")}")
               raise ReportedError, 'zone file is invalid'
@@ -139,8 +139,12 @@ module DnsMadeEasy
               include_apex_ns: options[:include_apex_ns]
             )
             success(
-              "Zone export complete.\nDomain: #{domain}\nRecords: #{records.length}\n" \
-              "Destination: #{options[:output] || 'STDOUT'}"
+              [
+                'Zone export complete.',
+                kv('Domain', domain),
+                kv('Records', records.length),
+                kv('Destination', options[:output] || 'STDOUT')
+              ].join("\n")
             )
           end
 
@@ -258,9 +262,11 @@ module DnsMadeEasy
           def plan_summary(domain, plan)
             [
               "Zone plan complete for #{domain}.",
-              "Creates: #{plan.creates.length}, Updates: #{plan.updates.length}",
-              "Skipped creates: #{plan.skipped_creates.length}, Skipped deletes: #{plan.skipped_deletes.length}",
-              "Manual review: #{plan.ambiguous.length}"
+              kv('Creates', plan.creates.length),
+              kv('Updates', plan.updates.length),
+              kv('Skipped creates', plan.skipped_creates.length),
+              kv('Skipped deletes', plan.skipped_deletes.length),
+              kv('Manual review', plan.ambiguous.length)
             ].join("\n")
           end
 
@@ -357,10 +363,12 @@ module DnsMadeEasy
           end
 
           def print_apply_summary(domain, result)
-            summary = "Zone apply complete for #{domain}.\n" \
-                      "Applied: #{result.applied_actions.length}\n" \
-                      "Failed: #{result.failed_actions.length}\n" \
-                      "Skipped: #{result.skipped_actions.length}"
+            summary = [
+              "Zone apply complete for #{domain}.",
+              kv('Applied', result.applied_actions.length),
+              kv('Failed', result.failed_actions.length),
+              kv('Skipped', result.skipped_actions.length)
+            ].join("\n")
 
             result.failed_actions.empty? ? success(summary) : warning(summary)
           end
