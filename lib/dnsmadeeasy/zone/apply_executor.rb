@@ -13,8 +13,14 @@ module DnsMadeEasy
       MODES = %i[merge add_only delete_only].freeze
       DEFAULT_MAX_THREADS = 4
 
+      # The DNS Made Easy API intermittently rejects rapid record mutations
+      # (rate limiting); short exponential backoff absorbs transient failures.
+      RETRY_ATTEMPTS = 3
+      RETRY_BASE_SLEEP = 1.0
+
+      # rubocop:disable Metrics/ParameterLists -- dependency-injected executor
       def initialize(client:, domain:, plan:, remote_records:, mode: :merge, spinner_factory: nil, spinner_output: $stderr,
-                     max_threads: DEFAULT_MAX_THREADS)
+                     max_threads: DEFAULT_MAX_THREADS, sleeper: nil)
         @client = client
         @domain = domain
         @plan = plan
@@ -22,7 +28,9 @@ module DnsMadeEasy
         @mode = mode
         @spinner_factory = spinner_factory || default_spinner_factory(spinner_output)
         @max_threads = [max_threads.to_i, 1].max
+        @sleeper = sleeper || ->(seconds) { sleep(seconds) }
       end
+      # rubocop:enable Metrics/ParameterLists
 
       def executable_action_count
         executable_actions.length
@@ -48,7 +56,8 @@ module DnsMadeEasy
                   :remote_records,
                   :mode,
                   :spinner_factory,
-                  :max_threads
+                  :max_threads,
+                  :sleeper
 
       def executable_actions
         sort_actions(
@@ -100,12 +109,33 @@ module DnsMadeEasy
       end
 
       def execute_indexed_action(indexed_action, outcome_mutex, applied_actions, failed_actions)
-        execute_action(indexed_action.fetch(:action))
+        execute_action_with_retries(indexed_action.fetch(:action))
         outcome_mutex.synchronize { applied_actions << indexed_action }
         false
-      rescue StandardError
-        outcome_mutex.synchronize { failed_actions << indexed_action }
+      rescue StandardError => e
+        failed = indexed_action.merge(action: annotate_failure(indexed_action.fetch(:action), e))
+        outcome_mutex.synchronize { failed_actions << failed }
         true
+      end
+
+      def execute_action_with_retries(action)
+        attempt = 0
+        begin
+          execute_action(action)
+        rescue StandardError
+          attempt += 1
+          raise if attempt >= RETRY_ATTEMPTS
+
+          sleeper.call(RETRY_BASE_SLEEP * (2**(attempt - 1)))
+          retry
+        end
+      end
+
+      # Attach the error to the failed action so the CLI can explain what
+      # went wrong instead of reporting a bare count.
+      def annotate_failure(action, error)
+        message = error.message.to_s.strip
+        action.new(message: message.empty? ? error.class.name : message)
       end
 
       def action_chunks(actions)

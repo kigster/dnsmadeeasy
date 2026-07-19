@@ -12,9 +12,13 @@ RSpec.describe DnsMadeEasy::Zone::ApplyExecutor do
         plan: plan,
         remote_records: remote_records,
         mode: mode,
-        spinner_factory: spinner_factory
+        spinner_factory: spinner_factory,
+        sleeper: sleeper
       ).call
     end
+
+    let(:sleep_calls) { [] }
+    let(:sleeper) { ->(seconds) { sleep_calls << seconds } }
 
     let(:domain) { 'example.com' }
     let(:client) { instance_double(DnsMadeEasy::Api::Client) }
@@ -158,7 +162,7 @@ RSpec.describe DnsMadeEasy::Zone::ApplyExecutor do
       its(:failure) { is_expected.to include('Unsupported apply mode: unsupported') }
     end
 
-    context 'when an API call fails' do
+    context 'when an API call fails persistently' do
       before do
         allow(client).to receive(:create_record).and_raise(StandardError, 'api failed')
       end
@@ -167,7 +171,42 @@ RSpec.describe DnsMadeEasy::Zone::ApplyExecutor do
         subject(:apply_result) { result.value! }
 
         its(:applied_actions) { is_expected.to contain_exactly(update_action) }
-        its(:failed_actions) { is_expected.to contain_exactly(create_action) }
+
+        # The failed action carries the API error so the CLI can explain it.
+        its(:failed_actions) do
+          is_expected.to contain_exactly(
+            have_attributes(action: 'create', record: www_cname, message: 'api failed')
+          )
+        end
+      end
+
+      it 'retries with exponential backoff before giving up' do
+        expect(client).to receive(:create_record).exactly(3).times.and_raise(StandardError, 'api failed')
+
+        result
+        expect(sleep_calls).to eq([1.0, 2.0])
+      end
+    end
+
+    context 'when an API call fails transiently' do
+      before do
+        attempts = 0
+        allow(client).to receive(:create_record) do
+          attempts += 1
+          raise StandardError, 'rate limited' if attempts == 1
+        end
+      end
+
+      describe 'apply result' do
+        subject(:apply_result) { result.value! }
+
+        its(:applied_actions) { is_expected.to contain_exactly(create_action, update_action) }
+        its(:failed_actions) { is_expected.to be_empty }
+      end
+
+      it 'sleeps once between the failed attempt and the retry' do
+        result
+        expect(sleep_calls).to eq([1.0])
       end
     end
   end

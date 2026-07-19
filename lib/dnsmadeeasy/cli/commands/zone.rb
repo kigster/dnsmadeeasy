@@ -370,7 +370,22 @@ module DnsMadeEasy
               kv('Skipped', result.skipped_actions.length)
             ].join("\n")
 
-            result.failed_actions.empty? ? success(summary) : warning(summary)
+            return success(summary) if result.failed_actions.empty?
+
+            warning(summary)
+            puts failed_section(result.failed_actions)
+          end
+
+          # Each failed action carries the API error message attached by the
+          # executor; a bare failure count is undebuggable.
+          def failed_section(actions)
+            (['Failed'] + actions.map { |action| "  - #{failed_line(action)}" }).join("\n")
+          end
+
+          def failed_line(action)
+            record = action.record || action.desired_record
+            line = [record.owner, record.type, record.priority, record.value, "(ttl=#{record.ttl})"].compact.join(' ')
+            action.message ? "#{line} — #{action.message}" : line
           end
 
           def fail_with(message, errors)
