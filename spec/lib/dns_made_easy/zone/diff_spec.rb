@@ -111,7 +111,7 @@ RSpec.describe DnsMadeEasy::Zone::Diff do
       it { is_expected.to be_empty }
     end
 
-    context 'with ambiguous owner/type changes' do
+    context 'with an equal-size multi-record group whose values changed' do
       let(:desired_records) do
         [
           DnsMadeEasy::Zone::Record.new(owner: '@', type: 'TXT', value: 'new one'),
@@ -125,8 +125,84 @@ RSpec.describe DnsMadeEasy::Zone::Diff do
         ]
       end
 
-      its(:ambiguous) { is_expected.to contain_exactly(have_attributes(action: 'ambiguous')) }
+      # Records in an RRset carry no individual identity, so value-changed
+      # records pair up (in sorted-value order) as updates.
+      its(:ambiguous) { is_expected.to be_empty }
+
+      its(:updates) do
+        is_expected.to contain_exactly(
+          have_attributes(action: 'update', desired_record: have_attributes(value: 'new one')),
+          have_attributes(action: 'update', desired_record: have_attributes(value: 'new two'))
+        )
+      end
+    end
+
+    context 'when a single record grows into a round-robin set' do
+      let(:desired_records) do
+        %w[216.239.32.21 216.239.34.21 216.239.36.21 216.239.38.21].map do |ip|
+          DnsMadeEasy::Zone::Record.new(owner: '@', type: 'A', value: ip)
+        end
+      end
+      let(:remote_records) { [DnsMadeEasy::Zone::Record.new(owner: '@', type: 'A', value: '100.21.133.254')] }
+
+      # One update replaces the lone remote value; the rest are creates.
+      its(:ambiguous) { is_expected.to be_empty }
+      its(:skipped_deletes) { is_expected.to be_empty }
+
+      its(:updates) do
+        is_expected.to contain_exactly(
+          have_attributes(action: 'update',
+                          desired_record: have_attributes(value: '216.239.32.21'),
+                          remote_record: have_attributes(value: '100.21.133.254'))
+        )
+      end
+
+      its(:creates) do
+        is_expected.to contain_exactly(
+          have_attributes(record: have_attributes(value: '216.239.34.21')),
+          have_attributes(record: have_attributes(value: '216.239.36.21')),
+          have_attributes(record: have_attributes(value: '216.239.38.21'))
+        )
+      end
+    end
+
+    context 'when a round-robin set shrinks to a single record' do
+      let(:desired_records) { [DnsMadeEasy::Zone::Record.new(owner: '@', type: 'A', value: '203.0.113.10')] }
+      let(:remote_records) do
+        %w[203.0.113.10 203.0.113.11 203.0.113.12].map do |ip|
+          DnsMadeEasy::Zone::Record.new(owner: '@', type: 'A', value: ip)
+        end
+      end
+
+      # The kept value matches; the surplus remote records are skipped deletes.
       its(:updates) { is_expected.to be_empty }
+      its(:creates) { is_expected.to be_empty }
+
+      its(:skipped_deletes) do
+        is_expected.to contain_exactly(
+          have_attributes(record: have_attributes(value: '203.0.113.11')),
+          have_attributes(record: have_attributes(value: '203.0.113.12'))
+        )
+      end
+    end
+
+    context 'when a multi-record group changes size with unequal TTLs' do
+      let(:desired_records) do
+        [
+          DnsMadeEasy::Zone::Record.new(owner: '@', type: 'AAAA', value: '2001:db8::1', ttl: 300),
+          DnsMadeEasy::Zone::Record.new(owner: '@', type: 'AAAA', value: '2001:db8::2', ttl: 300)
+        ]
+      end
+      let(:remote_records) { [DnsMadeEasy::Zone::Record.new(owner: '@', type: 'AAAA', value: '2001:db8::9', ttl: 120)] }
+
+      # The paired update must inherit the remote TTL (TTLs are not compared).
+      its(:updates) do
+        is_expected.to contain_exactly(
+          have_attributes(desired_record: have_attributes(value: '2001:db8::1', ttl: 120))
+        )
+      end
+
+      its(:creates) { is_expected.to contain_exactly(have_attributes(record: have_attributes(value: '2001:db8::2'))) }
     end
   end
 end

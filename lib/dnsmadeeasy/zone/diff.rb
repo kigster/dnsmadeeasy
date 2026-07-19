@@ -19,7 +19,7 @@ module DnsMadeEasy
           updates: update_actions,
           skipped_creates: skipped_create_actions,
           skipped_deletes: skipped_delete_actions,
-          ambiguous: ambiguous_actions
+          ambiguous: []
         )
       end
 
@@ -44,47 +44,69 @@ module DnsMadeEasy
       end
 
       def create_actions
-        missing_desired_records.map { |record| PlanAction.new(action: 'create', record: record) }
+        group_creates = group_deltas.flat_map { |delta| delta.fetch(:creates) }
+        (missing_desired_records + group_creates).map do |record|
+          PlanAction.new(action: 'create', record: record)
+        end
       end
 
       def update_actions
-        changed_identity_pairs.filter_map do |_identity, pair|
-          next unless pair.fetch(:desired).one? && pair.fetch(:remote).one?
-
-          PlanAction.new(
-            action: 'update',
-            desired_record: update_payload(pair),
-            remote_record: pair.fetch(:remote).first
-          )
+        group_deltas.flat_map do |delta|
+          delta.fetch(:updates).map do |desired, remote|
+            PlanAction.new(
+              action: 'update',
+              desired_record: update_payload(desired, remote),
+              remote_record: remote
+            )
+          end
         end
       end
 
       # When TTLs are not compared, an update must not modify the remote TTL
       # as a side effect, so the desired record inherits it.
-      def update_payload(pair)
-        desired = pair.fetch(:desired).first
+      def update_payload(desired, remote)
         return desired if compare_ttl
 
-        desired.new(ttl: pair.fetch(:remote).first.ttl)
+        desired.new(ttl: remote.ttl)
       end
 
       def skipped_delete_actions
-        remote_only_records.map do |record|
+        group_deletes = group_deltas.flat_map { |delta| delta.fetch(:deletes) }
+        (remote_only_records + group_deletes).map do |record|
           PlanAction.new(action: 'skipped_delete', record: record, message: 'Delete skipped by default')
         end
       end
 
-      def ambiguous_actions
-        changed_identity_pairs.filter_map do |_identity, pair|
-          next if pair.fetch(:desired).one? && pair.fetch(:remote).one?
+      # Individual records within an RRset carry no identity — only the set of
+      # values is meaningful in DNS. Within a changed (owner, type) group,
+      # records whose values match on both sides are unchanged; the rest are
+      # paired in sorted-value order as updates. Excess desired records become
+      # creates; excess remote records become (skipped) deletes. The end state
+      # is exact regardless of how records are paired.
+      def group_deltas
+        @group_deltas ||= changed_identity_pairs.values.map do |pair|
+          desired_changed = multiset_subtract(pair.fetch(:desired), pair.fetch(:remote)).sort_by(&:value)
+          remote_changed  = multiset_subtract(pair.fetch(:remote), pair.fetch(:desired)).sort_by(&:value)
+          paired          = [desired_changed.length, remote_changed.length].min
 
-          PlanAction.new(
-            action: 'ambiguous',
-            desired_record: pair.fetch(:desired).first,
-            remote_record: pair.fetch(:remote).first,
-            message: 'Multiple records share the same owner/type identity ' \
-                     "(desired: #{pair.fetch(:desired).length}, remote: #{pair.fetch(:remote).length})"
-          )
+          {
+            updates: desired_changed.first(paired).zip(remote_changed.first(paired)),
+            creates: desired_changed.drop(paired),
+            deletes: remote_changed.drop(paired)
+          }
+        end
+      end
+
+      # Records from +records+ that have no value-level counterpart in
+      # +others+, honoring duplicates (a multiset difference).
+      def multiset_subtract(records, others)
+        remaining = comparison_keys(others).tally
+        records.reject do |record|
+          key = comparison_key(record)
+          next false unless remaining[key].to_i.positive?
+
+          remaining[key] -= 1
+          true
         end
       end
 
